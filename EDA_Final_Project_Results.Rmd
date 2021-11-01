@@ -1,0 +1,109 @@
+---
+title: "Final Project W241"
+author: Elizabeth Khan, Estrella Ndrianasy, Chandni Shah, Michelle Shen, Catherine
+  Tsai
+date: "November 1, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import Functions
+
+```{r load packages, echo=FALSE, warning=FALSE, message=FALSE}
+library(data.table)
+library(magrittr)
+library(ggplot2)
+library(sandwich)
+library(lmtest)
+library(stargazer)
+library(stringr)
+
+
+theme_set(theme_minimal())
+options(tinytex.verbose = TRUE)
+options(warn=-1)
+```
+
+## Importing survey results csv
+```{r pressure, echo=FALSE}
+d <- fread("survey_data_as_of_11_01_21_10AM.csv")
+
+head(d)
+```
+
+```{r}
+# selecting survey columns for analysis
+cols <- c("ResponseId","Gender","Age","Education","instr_enthusiasm","instr_professional", "instr_subject","instr_material","instr_rating","subject_1","subject_2","subject_3","subject_4","video_watched")
+
+survey <- d[,..cols]
+head(survey)
+```
+
+```{r}
+ratings <- c("instr_enthusiasm","instr_professional", "instr_subject","instr_material","instr_rating")
+
+# Look through likert-scale question columns to extract scores
+for (col in ratings) {
+  survey[,col] <- strtoi(substr(survey[[col]],1,1))
+}
+
+# remove all special characters from education
+
+survey$Education <- str_replace_all(survey[["Education"]], "[^0-9A-Za-z///' ]","")
+
+
+# create a field for treatment (1) and control(0) assignment
+survey$assigned <- ifelse(survey[["video_watched"]] %like% "Treatment",1, 0)
+survey$assignment <- ifelse(survey[["video_watched"]] %like% "Treatment","Treatment", "Control")
+
+#subject_1 correct answer: All of the above
+#subject_2 correct answer: Both A & B
+#subject_3 correct answer: Python is a compiled programming language with a faster and more efficient execution time than interpreted programming languages
+#subject_4 correct answer: Great Advanced Language
+
+# Cleaning up Retention Check quiz columns to have 1 for correct answer and 0 for incorrect
+survey <- survey[ , ':='(ques_1 = ifelse(subject_1=="All of the above",1,0),
+                         ques_2 = ifelse(subject_2=="Both A & B",1,0),
+                         ques_3 = ifelse(subject_3=="Python is a compiled programming language with a faster and more efficient execution time than interpreted programming languages",1,0),
+                        ques_4 = ifelse(subject_4=="Great Advanced Language",1,0))]
+
+# Calculate quiz score and average overall rating of professor across categories
+survey <- survey[ , ':='(quiz_avg = (ques_1+ques_2+ques_3+ques_4)/4,
+                         avg_rating = (instr_enthusiasm + instr_professional + instr_material + instr_rating)/4)]
+
+head(survey)
+```
+
+```{r}
+graph1 <- ggplot(survey,aes(Gender,fill=Gender, label=.N)) + geom_bar()+geom_text(aes(label = ..count..), stat = "count", vjust = 1.5, colour = "white")+ labs(title="Survey Respondents by Gender")
+
+graph1
+
+
+graph2 <- ggplot(survey,aes(Gender,fill=assignment, label=.N)) + geom_bar()+labs(title="Survey Respondents by Gender and Assignment")+ scale_fill_grey() + theme_classic()
+
+
+graph2
+
+graph3 <- ggplot(survey,aes(video_watched,fill=assignment, label=.N)) + geom_bar()+labs(title="Survey Respondents by Gender and Assignment")+ scale_fill_grey() + theme_classic()+geom_text(aes(label = ..count..), stat = "count", vjust = 1.5, colour = "white")+ theme(axis.text.x = element_text(angle = -30))+ labs(title="Survey Respondents by Video Assignment")
+
+
+graph3
+
+
+graph4 <- ggplot(survey,aes(assignment, label=.N, fill=assignment)) + geom_bar()+labs(title="Respondents by Assignment")+geom_text(aes(label = ..count..), stat = "count", vjust = 1.5, colour = "white")
+
+graph4
+
+
+                    
+```
+
+```{r}
+# writing cleaned csv
+write.csv(survey,"survey_cleaned.csv", row.names = FALSE)
+
+```
