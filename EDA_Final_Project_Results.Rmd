@@ -2,7 +2,7 @@
 title: "Final Project W241"
 author: Elizabeth Khan, Estrella Ndrianasy, Chandni Shah, Michelle Shen, Catherine
   Tsai
-date: "November 1, 2021"
+date: "November 2, 2021"
 output: html_document
 ---
 
@@ -29,14 +29,14 @@ options(warn=-1)
 
 ## Importing survey results csv
 ```{r pressure, echo=FALSE}
-d <- fread("survey_data_as_of_11_01_21_10AM.csv")
+d <- fread("survey_data_as_of_11_02_21_final_raw_data.csv")
 
 head(d)
 ```
 
 ```{r}
 # selecting survey columns for analysis
-cols <- c("ResponseId","Gender","Age","Education","instr_enthusiasm","instr_professional", "instr_subject","instr_material","instr_rating","subject_1","subject_2","subject_3","subject_4","video_watched")
+cols <- c("ResponseId","Gender","Age","Education","LocationLatitude","LocationLongitude","instr_enthusiasm","instr_professional", "instr_subject","instr_material","instr_rating","subject_1","subject_2","subject_3","subject_4","video_watched")
 
 survey <- d[,..cols]
 head(survey)
