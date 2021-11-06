@@ -1,0 +1,248 @@
+---
+title: "Catherine Survey EDA"
+author: Elizabeth Khan, Estrella Ndrianasy, Chandni Shah, Michelle Shen, Catherine
+  Tsai
+date: "November 2, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load packages, echo=FALSE, warning=FALSE, message=FALSE}
+library(data.table)
+library(magrittr)
+library(ggplot2)
+library(sandwich)
+library(lmtest)
+library(stargazer)
+library(stringr)
+library(dplyr)
+library(foreign)
+library(maps)
+library(writexl)
+
+
+theme_set(theme_minimal())
+options(tinytex.verbose = TRUE)
+options(warn=-1)
+```
+
+```{r import data, echo=FALSE}
+d <- fread("survey_cleaned.csv")
+
+#head(d)
+
+colnames(d)
+```
+
+```{r initial data grouping}
+summary_response_table <- d %>%
+  count(Gender, Age, assignment)
+
+summary_response_table
+```
+
+```{r instr_enthusiam treatment v. control}
+
+response_hist <- d %>%
+  ggplot() +
+  aes(x = instr_rating, color=assignment) +
+  geom_histogram(alpha = 0.5, bins=5) +
+  labs(
+    title  = 'Instructor Overall Rating by Treatment and Control',
+    x      = 'Instuctor Overall Rating',
+    y      = 'Number of Responses'
+  ) +
+  theme_light() +
+  facet_wrap(~ assignment)
+
+response_hist
+
+
+```
+
+
+```{r t test treatment and control}
+
+# Separate data objects for treatment and control groups
+d_treat <- 
+  d %>% 
+  filter(assignment == 'Treatment')
+
+d_control <- 
+  d %>% 
+  filter(assignment == 'Control')
+
+
+# 2 sided t-test for each one of the instructor questions
+instructor_enthusiams_ttest <- t.test(d_treat$instr_enthusiasm, d_control$instr_enthusiasm, conf.level = 0.95)
+instructor_enthusiams_ttest
+
+instructor_professional_ttest <- t.test(d_treat$instr_professional, d_control$instr_professional, conf.level = 0.95)
+instructor_professional_ttest
+
+instructor_subject_ttest <- t.test(d_treat$instr_subject, d_control$instr_subject, conf.level = 0.95)
+instructor_subject_ttest
+
+instructor_material_ttest <- t.test(d_treat$instr_material, d_control$instr_material, conf.level = 0.95)
+instructor_material_ttest
+
+instructor_overall_ttest <- t.test(d_treat$instr_rating, d_control$instr_rating, conf.level = 0.95)
+instructor_overall_ttest
+
+```
+
+```{r t test treatment and control male}
+
+# Separate data objects for treatment and control groups
+d_treat_male <- 
+  d %>% 
+  filter(assignment == 'Treatment' & Gender == 'Male')
+
+d_control_male <- 
+  d %>% 
+  filter(assignment == 'Control'& Gender == 'Male')
+
+
+# 2 sided t-test for each one of the instructor questions
+instructor_enthusiams_ttest <- t.test(d_treat_male$instr_enthusiasm, d_control_male$instr_enthusiasm, conf.level = 0.95)
+instructor_enthusiams_ttest
+
+instructor_professional_ttest <- t.test(d_treat_male$instr_professional, d_control_male$instr_professional, conf.level = 0.95)
+instructor_professional_ttest
+
+instructor_subject_ttest <- t.test(d_treat_male$instr_subject, d_control_male$instr_subject, conf.level = 0.95)
+instructor_subject_ttest
+
+instructor_material_ttest <- t.test(d_treat_male$instr_material, d_control_male$instr_material, conf.level = 0.95)
+instructor_material_ttest
+
+instructor_overall_ttest <- t.test(d_treat_male$instr_rating, d_control_male$instr_rating, conf.level = 0.95)
+instructor_overall_ttest
+
+```
+
+```{r t test treatment and control female}
+
+# Separate data objects for treatment and control groups
+d_treat_female <- 
+  d %>% 
+  filter(assignment == 'Treatment' & Gender == 'Female')
+
+d_control_female <- 
+  d %>% 
+  filter(assignment == 'Control'& Gender == 'Female')
+
+
+# 2 sided t-test for each one of the instructor questions
+instructor_enthusiams_ttest <- t.test(d_treat_female$instr_enthusiasm, d_control_female$instr_enthusiasm, conf.level = 0.95)
+instructor_enthusiams_ttest
+
+instructor_professional_ttest <- t.test(d_treat_female$instr_professional, d_control_female$instr_professional, conf.level = 0.95)
+instructor_professional_ttest
+
+instructor_subject_ttest <- t.test(d_treat_female$instr_subject, d_control_female$instr_subject, conf.level = 0.95)
+instructor_subject_ttest
+
+instructor_material_ttest <- t.test(d_treat_female$instr_material, d_control_female$instr_material, conf.level = 0.95)
+instructor_material_ttest
+
+instructor_overall_ttest <- t.test(d_treat_female$instr_rating, d_control_female$instr_rating, conf.level = 0.95)
+instructor_overall_ttest
+
+```
+
+
+```{r estimate basic model}
+
+# Create a basic model
+mod_1 <- d[ , lm(instr_rating ~ assigned)]
+
+# Calculate the robust standard errors
+mod_1_rse <- sqrt(diag(vcovHC(mod_1)))
+
+# Calculate 95% confidence intervals
+mod_1_robust_ci <- coefci(x=mod_1, vcov = vcovHC(mod_1))
+
+# Print the confidence intervals
+mod_1_robust_ci
+
+summary(mod_1)
+
+```
+
+
+```{r }
+# Create a model 
+mod_2 <- d[ , lm(instr_rating ~ assigned + Gender + (assigned * Gender))]
+
+# Calculate the robust standard errors
+mod_2_rse <- sqrt(diag(vcovHC(mod_2)))
+
+# Calculate 95% confidence intervals
+mod_2_robust_ci <- coefci(x=mod_2, vcov = vcovHC(mod_2))
+
+# Print the confidence intervals
+mod_2_robust_ci
+
+stargazer(mod_1, mod_2, type='text')
+```
+
+
+```{r }
+
+# Create a model
+mod_3 <- d[ , lm(instr_rating ~ assigned + as.factor(Gender) + as.factor(Age) + quiz_avg)]
+
+# Calculate the robust standard errors
+mod_3_rse <- sqrt(diag(vcovHC(mod_3)))
+
+# Calculate 95% confidence intervals
+mod_3_robust_ci <- coefci(x=mod_3, vcov = vcovHC(mod_3))
+
+# Print the confidence intervals
+mod_3_robust_ci
+
+stargazer(mod_1, mod_2, mod_3, type='text')
+
+```
+
+
+# Split out college degree vs. not (Elizabeth)
+# Covariate test - balanced data (Elizabeth)
+# Video viewed - summary (Catherine)
+# Geography - add in field for state - % of republican vote (Catherine)
+
+```{r reverse geocoding}
+# Using maps package to get state data
+
+
+state <- map.where(database='state', 
+                   d$LocationLongitude, 
+                   d$LocationLatitude
+)
+
+
+```
+
+```{r}
+#state
+#write_xlsx(data.frame(state), "state_data.xlsx")
+
+# Added rep_percent and dem_percent to csv file and re-uploaded.
+# The %'s are the % of the state that voted for democrat (Biden) vs. republican (Trump) in 2020 presidential election
+
+# Source: https://cookpolitical.com/2020-national-popular-vote-tracker
+
+
+```
+
+```{r import data, echo=FALSE}
+d2 <- fread("survey_cleaned_with_states.csv")
+
+#head(d)
+
+colnames(d2)
+```

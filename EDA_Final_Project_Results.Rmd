@@ -20,6 +20,7 @@ library(sandwich)
 library(lmtest)
 library(stargazer)
 library(stringr)
+library(maps)
 
 
 theme_set(theme_minimal())
@@ -107,3 +108,16 @@ graph4
 write.csv(survey,"survey_cleaned.csv", row.names = FALSE)
 
 ```
+
+```{r reverse geocoding}
+# Using maps package to get state data
+
+
+state <- map.where(database='state', 
+                   d$LocationLongitude, 
+                   d$LocationLatitude
+)
+
+```
+
+
