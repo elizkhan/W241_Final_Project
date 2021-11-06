@@ -1,0 +1,123 @@
+---
+title: "Exploration and Models"
+author: Elizabeth Khan, Estrella Ndrianasy, Chandni Shah, Michelle Shen, Catherine
+  Tsai
+date: "November 5, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(magrittr)
+library(ggplot2)
+library(sandwich)
+library(lmtest)
+library(stargazer)
+library(stringr)
+library(tidyverse)
+library(gtsummary)
+library(vtable)
+
+
+theme_set(theme_minimal())
+options(tinytex.verbose = TRUE)
+options(warn=-1)
+```
+
+## 
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+d <- fread("survey_cleaned.csv")
+head(d)
+d <- d[Age!='Other']
+```
+
+## Plots and Tables
+
+Overall Distribution of quiz scores
+
+```{r plots, echo=FALSE}
+d %>%
+  select(Gender, assignment, Age) %>%
+  tbl_summary(by = Gender) %>%
+  add_overall()
+```
+```{r}
+d %>%
+  select(Gender, Education, assignment) %>%
+  tbl_summary(by = assignment) %>%
+  add_overall()
+```
+```{r}
+cols <- c("instr_enthusiasm","instr_professional", "instr_subject","instr_material","instr_rating","avg_rating","assignment")
+
+st(d[,..cols], group = 'assignment',
+   summ = list(
+     c('notNA(x)','mean(x)'),
+     c('notNA(x)','mean(x)')
+   ),
+   summ.names = list(
+     c('N','Mean'),
+     c('Count','Percent')
+   ), out='htmlreturn')
+
+
+st(d[,..cols], group = 'assignment', group.test=TRUE, out='kable')
+
+```
+```{r}
+
+d$quiz_grade <- as.factor(d$quiz_avg*100)
+ggplot(d, aes(x=quiz_grade))+
+geom_bar(aes(y = (..count..)),fill="lightblue")+
+labs(title="Distribution of Retention Quiz Scores",
+        x ="Retention Quiz Score", y = "Count")
+
+```
+
+```{r}
+ggplot(d, aes(x=assignment, y=avg_rating, fill=assignment))+
+  geom_boxplot()+
+  labs(title="Bar Chart of Treatment Assignment versus Average Instructor Rating",
+        x ="Treatment Assignment", y = "Average Instructor Rating")
+```
+```{r}
+ggplot(d, aes(x=video_watched, y=avg_rating, fill=assignment))+
+  geom_boxplot()+
+  labs(title="Bar Chart of Video Watched versus Average Instructor Rating",
+        x ="Video Watched", y = "Average Instructor Rating")+theme(axis.text.x = element_text(angle = -30))
+```
+```{r}
+ggplot(d, aes(x=video_watched, y=instr_enthusiasm, fill=assignment))+
+  geom_boxplot()+
+  labs(title="Bar Chart of Video Watched versus Average Instructor Rating",
+        x ="Video Watched", y = "Instructor Enthusiasm Rating")+theme(axis.text.x = element_text(angle = -30))
+```
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+model_1 <- lm(avg_rating ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+summary(model_1)
+model_2 <- lm(instr_rating ~ as.factor(Age) + as.factor(Gender)+ assignment, data=d)
+summary(model_2)
+
+model_3 <- lm(instr_subject ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+summary(model_3)
+
+model_4 <- lm(instr_material ~ as.factor(Age) +as.factor(Age) + as.factor(Gender)+assignment, data=d)
+summary(model_4)
+
+model_5 <- lm(instr_enthusiasm ~ assignment + as.factor(Gender) , data=d)
+summary(model_5)
+model_6 <- lm(instr_enthusiasm ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
+```
+```{r}
+stargazer(model_1, model_2, model_3, model_4, model_5, model_6, type = 'text')
