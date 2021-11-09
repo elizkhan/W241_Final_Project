@@ -30,7 +30,7 @@ options(warn=-1)
 ```
 
 ```{r import data, echo=FALSE}
-d <- fread("survey_cleaned.csv")
+d <- fread("survey_cleaned_with_states.csv")
 
 #head(d)
 
@@ -239,10 +239,20 @@ state <- map.where(database='state',
 
 ```
 
-```{r import data, echo=FALSE}
-d2 <- fread("survey_cleaned_with_states.csv")
+```{r }
 
-#head(d)
+# Create a model
+mod_4 <- d[ , lm(instr_rating ~ assigned + as.factor(Gender) + as.factor(Age) + video_watched)]
 
-colnames(d2)
+# Calculate the robust standard errors
+mod_4_rse <- sqrt(diag(vcovHC(mod_4)))
+
+# Calculate 95% confidence intervals
+mod_4_robust_ci <- coefci(x=mod_4, vcov = vcovHC(mod_4))
+
+# Print the confidence intervals
+mod_4_robust_ci
+
+stargazer(mod_1, mod_2, mod_3, mod_4, type='text')
+
 ```
