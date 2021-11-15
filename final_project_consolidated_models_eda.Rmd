@@ -1,0 +1,272 @@
+---
+title: "Final 241 Project Consolidation"
+output:
+  html_document: default
+  pdf_document: default
+---
+author: Elizabeth Khan, Estrella Ndrianasy, Chandni Shah, Michelle Shen, Catherine
+  Tsai
+date: "November 8, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(magrittr)
+library(ggplot2)
+library(sandwich)
+library(lmtest)
+library(stargazer)
+library(stringr)
+library(tidyverse)
+library(gtsummary)
+library(vtable)
+library(writexl)
+
+theme_set(theme_minimal())
+options(tinytex.verbose = TRUE)
+options(warn=-1)
+```
+
+
+
+
+```{r survey}
+# Import data and remove invalid age 
+
+d <- fread("survey_cleaned_with_states.csv")
+head(d)
+d <- d[Age!='Other']
+
+
+degrees = c("Bachelors degree","Associates degree","Masters degree")
+
+# create column to indicate whether or not subject has a college degree
+
+d<- d[,college_degree:= ifelse(Education %in% degrees, 1,0)]
+length(d$college_degree)
+```
+
+## Figures and Tables
+
+```{r initial data grouping}
+summary_response_table <- d %>%
+  count(Gender, Age, assignment)
+
+summary_response_table
+```
+
+```{r plots, echo=FALSE}
+d %>%
+  select(Gender, assignment, Age) %>%
+  tbl_summary(by = Gender) %>%
+  add_overall()
+```
+
+```{r}
+d %>%
+  select(Gender, Education, assignment) %>%
+  tbl_summary(by = assignment) %>%
+  add_overall()
+```
+
+```{r instr_enthusiam treatment v. control}
+
+response_hist <- d %>%
+  ggplot() +
+  aes(x = instr_rating, color=assignment) +
+  geom_histogram(alpha = 0.5, bins=5) +
+  labs(
+    title  = 'Instructor Overall Rating by Treatment and Control',
+    x      = 'Instructor Overall Rating',
+    y      = 'Number of Responses'
+  ) +
+  theme_light() +
+  facet_wrap(~ assignment)
+
+response_hist
+
+
+```
+
+```{r}
+ggplot(d, aes(x=assignment, y=avg_rating, fill=assignment))+
+  geom_boxplot()+
+  labs(title="Bar Chart of Treatment Assignment versus Average Instructor Rating",
+        x ="Treatment Assignment", y = "Average Instructor Rating")
+```
+
+```{r}
+ggplot(d, aes(x=video_watched, y=avg_rating, fill=assignment))+
+  geom_boxplot()+
+  labs(title="Bar Chart of Video Watched versus Average Instructor Rating",
+        x ="Video Watched", y = "Average Instructor Rating")+theme(axis.text.x = element_text(angle = -30))
+```
+
+```{r}
+
+d$quiz_grade <- as.factor(d$quiz_avg*100)
+ggplot(d, aes(x=quiz_grade))+
+geom_bar(aes(y = (..count..)),fill="lightblue")+
+labs(title="Distribution of Retention Quiz Scores",
+        x ="Retention Quiz Score", y = "Count")
+
+```
+
+
+## Randomness Check
+
+In this section, we verify if the block randomization was successful; there should be no increase in predicting whether or not someone is in the treatment or control group based on their blocks.
+
+```{r}
+null_model <- lm(assigned~1,data=d)
+full_model <- lm(assigned ~ 1 + as.factor(Age)+as.factor(Gender), data=d)
+f_test <- anova(full_model, null_model, test ='F')
+f_test
+```
+
+```{r t test treatment and control}
+
+# Separate data objects for treatment and control groups
+d_treat <- 
+  d %>% 
+  filter(assignment == 'Treatment')
+
+d_control <- 
+  d %>% 
+  filter(assignment == 'Control')
+
+
+# 2 sided t-test for each one of the instructor questions
+instructor_enthusiams_ttest <- t.test(d_treat$instr_enthusiasm, d_control$instr_enthusiasm, conf.level = 0.95)
+instructor_enthusiams_ttest
+
+instructor_professional_ttest <- t.test(d_treat$instr_professional, d_control$instr_professional, conf.level = 0.95)
+instructor_professional_ttest
+
+instructor_subject_ttest <- t.test(d_treat$instr_subject, d_control$instr_subject, conf.level = 0.95)
+instructor_subject_ttest
+
+instructor_material_ttest <- t.test(d_treat$instr_material, d_control$instr_material, conf.level = 0.95)
+instructor_material_ttest
+
+instructor_overall_ttest <- t.test(d_treat$instr_rating, d_control$instr_rating, conf.level = 0.95)
+instructor_overall_ttest
+
+```
+
+
+```{r}
+model_0 <- lm(avg_rating ~ assignment, data=d)
+stargazer(model_0, type='text')
+model_1 <- lm(avg_rating ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_2 <- lm(instr_rating ~ as.factor(Age) + as.factor(Gender)+ assignment, data=d)
+model_3 <- lm(instr_subject ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_4 <- lm(instr_material ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_5 <- lm(instr_enthusiasm ~ as.factor(Age) + as.factor(Gender)+assignment , data=d)
+model_6 <- lm(instr_enthusiasm ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
+model_7 <- lm(avg_rating ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
+model_8 <- lm(instr_rating ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
+```
+```{r}
+#models with blocking across instructor ratings
+stargazer(model_1, model_2, model_3,model_4, model_5, type = 'text')
+
+#interaction term models
+stargazer( model_6, model_7, model_8, type = 'text')
+```
+
+```{r quiz_model}
+# base model 
+model_0_2 <- lm(quiz_avg~ assignment, data=d)
+model_1_2 <- lm(quiz_avg ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_2_2 <- lm(quiz_avg ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
+
+
+#models with blocking across quiz averages
+stargazer(model_1_2, model_2_2, type = 'text')
+```
+
+```{r baseline_models, include=FALSE}
+# does having a college degree have an effect
+#mod <- lm(instr_rating ~  as.factor(Age) + as.factor(Gender)+ as.factor(college_degree) + assignment, data=d)
+#mod_2 <- lm(instr_subject ~  as.factor(Age) + as.factor(Gender)+ as.factor(college_degree) + assignment, data=d)
+#mod_3 <- lm(instr_material ~  as.factor(Age) + as.factor(Gender)+ as.factor(college_degree) + assignment, data=d)
+#mod_4 <- lm(instr_enthusiasm ~  as.factor(Age) + as.factor(Gender)+ as.factor(college_degree) + assignment, data=d)
+#mod_5 <- lm(avg_rating ~  as.factor(Age) + as.factor(Gender)+ as.factor(college_degree) + assignment, data=d)
+
+#stargazer(mod,mod_2, mod_3, mod_4,mod_5, type='text')
+
+# Create a basic model
+#mod_1 <- d[ , lm(instr_rating ~ assigned)]
+# Calculate the robust standard errors
+#mod_1_rse <- sqrt(diag(vcovHC(mod_1)))
+# Calculate 95% confidence intervals
+#mod_1_robust_ci <- coefci(x=mod_1, vcov = vcovHC(mod_1))
+# Print the confidence intervals
+#mod_1_robust_ci
+#summary(mod_1)
+```
+
+
+```{r , include=FALSE}
+# Create a model 
+#mod_2 <- d[ , lm(instr_rating ~ assigned + Gender + (assigned * Gender))]
+# Calculate the robust standard errors
+#mod_2_rse <- sqrt(diag(vcovHC(mod_2)))
+# Calculate 95% confidence intervals
+#mod_2_robust_ci <- coefci(x=mod_2, vcov = vcovHC(mod_2))
+# Print the confidence intervals
+#mod_2_robust_ci
+#stargazer(mod_1, mod_2, type='text')
+```
+
+```{r estimate basic model, include=FALSE}
+# Create a basic model
+#mod_1 <- d[ , lm(instr_rating ~ assigned)]
+# Calculate the robust standard errors
+#mod_1_rse <- sqrt(diag(vcovHC(mod_1)))
+# Calculate 95% confidence intervals
+#mod_1_robust_ci <- coefci(x=mod_1, vcov = vcovHC(mod_1))
+# Print the confidence intervals
+#mod_1_robust_ci
+#summary(mod_1)
+```
+
+
+```{r , include=FALSE}
+# Create a model 
+#mod_2 <- d[ , lm(instr_rating ~ assigned + Gender + (assigned * Gender))]
+# Calculate the robust standard errors
+#mod_2_rse <- sqrt(diag(vcovHC(mod_2)))
+# Calculate 95% confidence intervals
+#mod_2_robust_ci <- coefci(x=mod_2, vcov = vcovHC(mod_2))
+# Print the confidence intervals
+#mod_2_robust_ci
+#stargazer(mod_1, mod_2, type='text')
+```
+```{r, include=FALSE}
+# Create a model
+#mod_3 <- d[ , lm(instr_rating ~ assigned + as.factor(Gender) + as.factor(Age) + quiz_avg)]
+# Calculate the robust standard errors
+#mod_3_rse <- sqrt(diag(vcovHC(mod_3)))
+# Calculate 95% confidence intervals
+#mod_3_robust_ci <- coefci(x=mod_3, vcov = vcovHC(mod_3))
+# Print the confidence intervals
+#mod_3_robust_ci
+#stargazer(mod_1, mod_2, mod_3, type='text')
+
+```
+
+```{r ,include=FALSE }
+# Create a model
+#mod_4 <- d[ , lm(instr_rating ~ assigned + as.factor(Gender) + as.factor(Age) + video_watched)]
+# Calculate the robust standard errors
+#mod_4_rse <- sqrt(diag(vcovHC(mod_4)))
+# Calculate 95% confidence intervals
+#mod_4_robust_ci <- coefci(x=mod_4, vcov = vcovHC(mod_4))
+# Print the confidence intervals
+#mod_4_robust_ci
+# stargazer(mod_1, mod_2, mod_3, mod_4, type='text')
+```
