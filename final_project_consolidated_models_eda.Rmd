@@ -22,6 +22,9 @@ library(stringr)
 library(tidyverse)
 library(gtsummary)
 library(vtable)
+library(cobalt)
+library(qwraps2)
+#library(xtables)
 library(writexl)
 
 theme_set(theme_minimal())
@@ -36,17 +39,22 @@ options(warn=-1)
 # Import data and remove invalid age 
 
 d <- fread("survey_cleaned_with_states.csv")
-head(d)
+
 d <- d[Age!='Other']
 
+# Removing company test response 52.36
+d <- d[ResponseId!='R_2WC5vlB2DCvHHrH']
 
 degrees = c("Bachelors degree","Associates degree","Masters degree")
 
 # create column to indicate whether or not subject has a college degree
 
-d<- d[,college_degree:= ifelse(Education %in% degrees, 1,0)]
-length(d$college_degree)
+# d<- d[,college_degree:= ifelse(Education %in% degrees, 1,0)]
+
+head(d)
+
 ```
+
 
 ## Figures and Tables
 
@@ -125,148 +133,235 @@ full_model <- lm(assigned ~ 1 + as.factor(Age)+as.factor(Gender), data=d)
 f_test <- anova(full_model, null_model, test ='F')
 f_test
 ```
+```{r covariate balance check}
+covs <- c('Age','Gender','Education', 'assignment','avg_rating')
+subset <- d[,..covs]
 
-```{r t test treatment and control}
+head(subset)
+options(qwraps2_markup = 'markdown')
+covariate_summary <-
+  list("Gender" =
+       list("Male"      = ~ qwraps2::n_perc(Gender == 'Male'),
+            "Female"    = ~ qwraps2::n_perc(Gender == 'Female')),
+      "Age" =
+       list("20-30" = ~ qwraps2::n_perc(Age == '20-30'),
+            "30-40"  = ~ qwraps2::n_perc(Age == '30-40'),
+            "40-50"  = ~ qwraps2::n_perc(Age == '40-50'),
+            "50+" = ~ qwraps2::n_perc(Age == '50+')),
+       "Education" =
+       list("Less than High school" = ~ qwraps2::n_perc(Education == 'Less than High school'),
+            "High school diploma"  = ~ qwraps2::n_perc(Education == 'High school diploma'),
+            "Some College No degree"  = ~ qwraps2::n_perc(Education == 'Some College No degree'),
+            "Associates degree"  = ~ qwraps2::n_perc(Education == 'Associates degree'),
+            "Bachelors degree"  = ~ qwraps2::n_perc(Education == 'Bachelors degree'),
+            "Masters degree"  = ~ qwraps2::n_perc(Education == 'Masters degree'))
+       )
 
-# Separate data objects for treatment and control groups
-d_treat <- 
-  d %>% 
-  filter(assignment == 'Treatment')
-
-d_control <- 
-  d %>% 
-  filter(assignment == 'Control')
+table <- summary_table(subset, covariate_summary, by = c("assignment"))
 
 
-# 2 sided t-test for each one of the instructor questions
-instructor_enthusiams_ttest <- t.test(d_treat$instr_enthusiasm, d_control$instr_enthusiasm, conf.level = 0.95)
-instructor_enthusiams_ttest
+table
+```
+```{r}
+unique(d$Education)
+```
+```{r}
+ages <- unique(d[,Age])
+p_values_ages <- data.table(Age = character(), mean_rating_control = numeric(), mean_rating_treatment = numeric(), p_value=numeric())
 
-instructor_professional_ttest <- t.test(d_treat$instr_professional, d_control$instr_professional, conf.level = 0.95)
-instructor_professional_ttest
 
-instructor_subject_ttest <- t.test(d_treat$instr_subject, d_control$instr_subject, conf.level = 0.95)
-instructor_subject_ttest
+ 
+for(age in ages)
+  
+{ print(age)
+  
+treatment_avg = round(mean(d[(Age==age)&(assignment=='Treatment'),instr_rating]),2)
+control_avg = round(mean(d[(Age==age)&(assignment=='Control'),instr_rating]),2)
+p_val =round(t.test(d[(Age==age)&(assignment=='Treatment'),instr_rating], d[(Age==age)&(assignment=='Control'),instr_rating], conf.level = 0.95)$p.value,3)
+table1 <-data.table(Age=age,mean_rating_control = control_avg, mean_rating_treatment = treatment_avg, p_value=p_val)
+p_values_ages<-rbind(p_values_ages, table1)
+}
 
-instructor_material_ttest <- t.test(d_treat$instr_material, d_control$instr_material, conf.level = 0.95)
-instructor_material_ttest
+p_values_ages <- unique(p_values_ages)
 
-instructor_overall_ttest <- t.test(d_treat$instr_rating, d_control$instr_rating, conf.level = 0.95)
-instructor_overall_ttest
+
+```
+```{r}
+t.test(d[(Age==age)&(assignment=='Treatment'),instr_rating], d[(Age==age)&(assignment=='Control'),instr_rating], conf.level = 0.95)
+
+print(age)
+```
+
+```{r}
+
+genders <- unique(d[,Gender])
+p_values_genders<- data.table(Gender = character(), mean_rating_control = numeric(), mean_rating_treatment = numeric(), p_value=numeric())
+
+
+ 
+for(gender in genders)
+  
+{ print(gender)
+treatment_avg =round(mean(d[(Gender==gender)&(assignment=='Treatment'),avg_rating]),2)
+control_avg =round(mean(d[(Gender==gender)&(assignment=='Control'),avg_rating]),2)
+p_val =round(t.test(d[(Gender==gender)&(assignment=='Treatment'),avg_rating], d[(Gender==gender)&(assignment=='Control'),avg_rating], conf.level = 0.95)$p.value,3)
+table1 <-data.table(Gender=gender,mean_rating_control = control_avg, mean_rating_treatment = treatment_avg, p_value=p_val)
+p_values_genders<-rbind(p_values_genders, table1)
+}
 
 ```
 
 
 ```{r}
-model_0 <- lm(avg_rating ~ assignment, data=d)
-stargazer(model_0, type='text')
-model_1 <- lm(avg_rating ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
-model_2 <- lm(instr_rating ~ as.factor(Age) + as.factor(Gender)+ assignment, data=d)
-model_3 <- lm(instr_subject ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
-model_4 <- lm(instr_material ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
-model_5 <- lm(instr_enthusiasm ~ as.factor(Age) + as.factor(Gender)+assignment , data=d)
-model_6 <- lm(instr_enthusiasm ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
-model_7 <- lm(avg_rating ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
-model_8 <- lm(instr_rating ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
+educations <- unique(d[,Education])
+p_values_educations<- data.table(Education = character(), mean_rating_control = numeric(), mean_rating_treatment = numeric(), p_value=numeric())
+
+
+
+ 
+for(education in educations)
+  
+{ print(education)
+treatment_avg =round(mean(d[(Education==education)&(assignment=='Treatment'),avg_rating]),2)
+control_avg =round(mean(d[(Education==education)&(assignment=='Control'),avg_rating]),2)
+if (education!= 'Less than High school') {
+p_val =round(t.test(d[(Education==education)&(assignment=='Treatment'),avg_rating], d[(Education==education)&(assignment=='Control'),avg_rating], conf.level = 0.95)$p.value,3)}
+else {p_val = NA}
+table1 <-data.table(Education=education,mean_rating_control = control_avg, mean_rating_treatment = treatment_avg, p_value=p_val)
+p_values_educations<-rbind(p_values_educations, table1)
+}
 ```
 ```{r}
-#models with blocking across instructor ratings
-stargazer(model_1, model_2, model_3,model_4, model_5, type = 'text')
+p_values_all <- left_join(subset, p_values_ages, by="Age")
+p_values_all <- left_join(p_values_all, p_values_educations, by="Education")
 
-#interaction term models
-stargazer( model_6, model_7, model_8, type = 'text')
+p_values_all <- left_join(p_values_all, p_values_genders, by="Gender")
+
+head(p_values_all)
 ```
 
-```{r quiz_model}
+
+```{r}
+
+options(qwraps2_frmtp_digits= 2)
+
+covariate_summary2<-
+  list("Gender" =
+       list("Male"      = ~ max(as.numeric(ifelse(Gender == 'Male',mean_rating_control,0))),
+            "Female"    = ~ max(as.numeric(ifelse(Gender == 'Female',mean_rating_control,0)))),
+       "Age" =
+       list("20-30" = ~ max(as.numeric(ifelse(Age == '20-30',mean_rating_control.x,0))),
+            "30-40"  = ~ max(as.numeric(ifelse(Age == '30-40',mean_rating_control.x,0))),
+            "40-50"  = ~ max(as.numeric(ifelse(Age == '40-50',mean_rating_control.x,0))),
+            "50+" = ~ max(as.numeric(ifelse(Age == '50+',mean_rating_control.x,0)))),
+       "Education" =
+       list("Less than High school" = ~ max(as.numeric(ifelse(Education == 'Less than High school',mean_rating_control.y,0))),
+            "High school diploma"  = ~ max(as.numeric(ifelse(Education == 'High school diploma',mean_rating_control.y,0))),
+            "Some College No degree"  = ~ max(as.numeric(ifelse(Education == 'Some College No degree',mean_rating_control.y,0))),
+            "Associates degree"  = ~ max(as.numeric(ifelse(Education == 'Associates degree',mean_rating_control.y,0))),
+            "Bachelors degree"  = ~ max(as.numeric(ifelse(Education == 'Bachelors degree',mean_rating_control.y,0))),
+            "Masters degree"  = ~ max(as.numeric(ifelse(Education == 'Masters degree',mean_rating_control.y,0))))
+       )
+
+table2<- summary_table(p_values_all , covariate_summary2)
+
+
+covariate_summary3<-
+  list("Gender" =
+       list("Male"      = ~ max(as.numeric(ifelse(Gender == 'Male',mean_rating_treatment,0))),
+            "Female"    = ~ max(as.numeric(ifelse(Gender == 'Female',mean_rating_treatment,0)))),
+       "Age" =
+       list("20-30" = ~ max(as.numeric(ifelse(Age == '20-30',mean_rating_treatment.x,0))),
+            "30-40"  = ~ max(as.numeric(ifelse(Age == '30-40',mean_rating_treatment.x,0))),
+            "40-50"  = ~ max(as.numeric(ifelse(Age == '40-50',mean_rating_treatment.x,0))),
+            "50+" = ~ max(as.numeric(ifelse(Age == '50+',mean_rating_treatment.x,0)))),
+       "Education" =
+       list("Less than High school" = ~ max(as.numeric(ifelse(Education == 'Less than High school',mean_rating_treatment.y,0))),
+            "High school diploma"  = ~ max(as.numeric(ifelse(Education == 'High school diploma',mean_rating_treatment.y,0))),
+            "Some College No degree"  = ~ max(as.numeric(ifelse(Education == 'Some College No degree',mean_rating_treatment.y,0))),
+            "Associates degree"  = ~ max(as.numeric(ifelse(Education == 'Associates degree',mean_rating_treatment.y,0))),
+            "Bachelors degree"  = ~ max(as.numeric(ifelse(Education == 'Bachelors degree',mean_rating_treatment.y,0))),
+            "Masters degree"  = ~ max(as.numeric(ifelse(Education == 'Masters degree',mean_rating_treatment.y,0))))
+       )
+
+table3<- summary_table(p_values_all , covariate_summary3)
+
+covariate_summary4<-
+  list("Gender" =
+       list("Male"      = ~ max(as.numeric(ifelse(Gender == 'Male',p_value,0))),
+            "Female"    = ~ max(as.numeric(ifelse(Gender == 'Female',p_value,0)))),
+       "Age" =
+       list("20-30" = ~ max(as.numeric(ifelse(Age == '20-30',p_value.x,0))),
+            "30-40"  = ~ max(as.numeric(ifelse(Age == '30-40',p_value.x,0))),
+            "40-50"  = ~ max(as.numeric(ifelse(Age == '40-50',p_value.x,0))),
+            "50+" = ~ max(as.numeric(ifelse(Age == '50+',p_value.x,0)))),
+       "Education" =
+       list("Less than High school" = ~ max(as.numeric(ifelse(Education == 'Less than High school',p_value.y,0))),
+            "High school diploma"  = ~ max(as.numeric(ifelse(Education == 'High school diploma',p_value.y,0))),
+            "Some College No degree"  = ~ max(as.numeric(ifelse(Education == 'Some College No degree',p_value.y,0))),
+            "Associates degree"  = ~ max(as.numeric(ifelse(Education == 'Associates degree',p_value.y,0))),
+            "Bachelors degree"  = ~ max(as.numeric(ifelse(Education == 'Bachelors degree',p_value.y,0))),
+            "Masters degree"  = ~ max(as.numeric(ifelse(Education == 'Masters degree',p_value.y,0))))
+       )
+
+options(digits=3)
+table4<- summary_table(p_values_all , covariate_summary4)
+final <-cbind(table, table2,table3,table4)
+print(final, cname = c("Control (N = 108)","Treatment (N = 113)", "Mean Rating - Control", "Mean Rating - Treatment", "P-value"),digits=3)
+```
+
+
+```{r}
+# Table 1: Baseline models Outcome ~ Treatment
+model_1_1 <- lm(avg_rating ~ assignment, data=d)
+model_1_2 <- lm(avg_rating ~ assignment, data=d)
+model_1_3 <- lm(avg_rating ~ assignment, data=d)
+model_1_4 <- lm(avg_rating ~ assignment, data=d)
+model_1_5 <- lm(avg_rating ~ assignment, data=d)
+
+# Table 1
+stargazer(model_1_1,model_1_2, model_1_3, model_1_4, model_1_5, type='text')
+
+
+# Table 2: Outcome with Pre-treatment blocks (Age and Gender)
+model_2_1 <- lm(avg_rating ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_2_2 <- lm(instr_rating ~ as.factor(Age) + as.factor(Gender)+ assignment, data=d)
+model_2_3 <- lm(instr_subject ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_2_4 <- lm(instr_material ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_2_5 <- lm(instr_enthusiasm ~ as.factor(Age) + as.factor(Gender)+assignment , data=d)
+
+# Table 2
+stargazer(model_2_1,model_2_2, model_2_3, model_2_4, model_2_5, type='text')
+
+# Table 3: Outcome with Pre-treatment blocks (Age and Gender) and interaction term (gender*treatment)
+model_3_1 <- lm(avg_rating ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
+model_3_2 <- lm(instr_rating ~ as.factor(Age) + as.factor(Gender)+ assignment +as.factor(Gender)*assignment, data=d)
+model_3_3 <- lm(instr_subject ~ as.factor(Age) + as.factor(Gender)+assignment+as.factor(Gender)*assignment, data=d)
+model_3_4 <- lm(instr_material ~ as.factor(Age) + as.factor(Gender)+assignment+as.factor(Gender)*assignment, data=d)
+model_3_5 <- lm(instr_enthusiasm ~ as.factor(Age) + as.factor(Gender)+assignment+as.factor(Gender)*assignment, data=d)
+
+
+# Table 3
+stargazer(model_3_1,model_3_2, model_3_3, model_3_4, model_3_5, type='text')
+
+# Table 4:
+
 # base model 
-model_0_2 <- lm(quiz_avg~ assignment, data=d)
-model_1_2 <- lm(quiz_avg ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
-model_2_2 <- lm(quiz_avg ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
+model_4_1 <- lm(quiz_avg~ assignment, data=d)
+model_4_2 <- lm(quiz_avg ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_4_3 <- lm(quiz_avg ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
 
 
 #models with blocking across quiz averages
-stargazer(model_1_2, model_2_2, type = 'text')
-```
-
-```{r baseline_models, include=FALSE}
-# does having a college degree have an effect
-#mod <- lm(instr_rating ~  as.factor(Age) + as.factor(Gender)+ as.factor(college_degree) + assignment, data=d)
-#mod_2 <- lm(instr_subject ~  as.factor(Age) + as.factor(Gender)+ as.factor(college_degree) + assignment, data=d)
-#mod_3 <- lm(instr_material ~  as.factor(Age) + as.factor(Gender)+ as.factor(college_degree) + assignment, data=d)
-#mod_4 <- lm(instr_enthusiasm ~  as.factor(Age) + as.factor(Gender)+ as.factor(college_degree) + assignment, data=d)
-#mod_5 <- lm(avg_rating ~  as.factor(Age) + as.factor(Gender)+ as.factor(college_degree) + assignment, data=d)
-
-#stargazer(mod,mod_2, mod_3, mod_4,mod_5, type='text')
-
-# Create a basic model
-#mod_1 <- d[ , lm(instr_rating ~ assigned)]
-# Calculate the robust standard errors
-#mod_1_rse <- sqrt(diag(vcovHC(mod_1)))
-# Calculate 95% confidence intervals
-#mod_1_robust_ci <- coefci(x=mod_1, vcov = vcovHC(mod_1))
-# Print the confidence intervals
-#mod_1_robust_ci
-#summary(mod_1)
+stargazer(model_4_1, model_4_2,model_4_3, type = 'text')
 ```
 
 
-```{r , include=FALSE}
-# Create a model 
-#mod_2 <- d[ , lm(instr_rating ~ assigned + Gender + (assigned * Gender))]
-# Calculate the robust standard errors
-#mod_2_rse <- sqrt(diag(vcovHC(mod_2)))
-# Calculate 95% confidence intervals
-#mod_2_robust_ci <- coefci(x=mod_2, vcov = vcovHC(mod_2))
-# Print the confidence intervals
-#mod_2_robust_ci
-#stargazer(mod_1, mod_2, type='text')
-```
-
-```{r estimate basic model, include=FALSE}
-# Create a basic model
-#mod_1 <- d[ , lm(instr_rating ~ assigned)]
-# Calculate the robust standard errors
-#mod_1_rse <- sqrt(diag(vcovHC(mod_1)))
-# Calculate 95% confidence intervals
-#mod_1_robust_ci <- coefci(x=mod_1, vcov = vcovHC(mod_1))
-# Print the confidence intervals
-#mod_1_robust_ci
-#summary(mod_1)
-```
 
 
-```{r , include=FALSE}
-# Create a model 
-#mod_2 <- d[ , lm(instr_rating ~ assigned + Gender + (assigned * Gender))]
-# Calculate the robust standard errors
-#mod_2_rse <- sqrt(diag(vcovHC(mod_2)))
-# Calculate 95% confidence intervals
-#mod_2_robust_ci <- coefci(x=mod_2, vcov = vcovHC(mod_2))
-# Print the confidence intervals
-#mod_2_robust_ci
-#stargazer(mod_1, mod_2, type='text')
-```
-```{r, include=FALSE}
-# Create a model
-#mod_3 <- d[ , lm(instr_rating ~ assigned + as.factor(Gender) + as.factor(Age) + quiz_avg)]
-# Calculate the robust standard errors
-#mod_3_rse <- sqrt(diag(vcovHC(mod_3)))
-# Calculate 95% confidence intervals
-#mod_3_robust_ci <- coefci(x=mod_3, vcov = vcovHC(mod_3))
-# Print the confidence intervals
-#mod_3_robust_ci
-#stargazer(mod_1, mod_2, mod_3, type='text')
 
-```
 
-```{r ,include=FALSE }
-# Create a model
-#mod_4 <- d[ , lm(instr_rating ~ assigned + as.factor(Gender) + as.factor(Age) + video_watched)]
-# Calculate the robust standard errors
-#mod_4_rse <- sqrt(diag(vcovHC(mod_4)))
-# Calculate 95% confidence intervals
-#mod_4_robust_ci <- coefci(x=mod_4, vcov = vcovHC(mod_4))
-# Print the confidence intervals
-#mod_4_robust_ci
-# stargazer(mod_1, mod_2, mod_3, mod_4, type='text')
-```
+
+
+
+
