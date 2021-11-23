@@ -1,8 +1,8 @@
 ---
 title: "Final 241 Project Consolidation"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 author: Elizabeth Khan, Estrella Ndrianasy, Chandni Shah, Michelle Shen, Catherine
   Tsai
@@ -314,10 +314,10 @@ print(final, cname = c("Control (N = 108)","Treatment (N = 113)", "Mean Rating -
 ```{r}
 # Table 1: Baseline models Outcome ~ Treatment
 model_1_1 <- lm(avg_rating ~ assignment, data=d)
-model_1_2 <- lm(avg_rating ~ assignment, data=d)
-model_1_3 <- lm(avg_rating ~ assignment, data=d)
-model_1_4 <- lm(avg_rating ~ assignment, data=d)
-model_1_5 <- lm(avg_rating ~ assignment, data=d)
+model_1_2 <- lm(instr_rating ~ assignment, data=d)
+model_1_3 <- lm(instr_subject ~ assignment, data=d)
+model_1_4 <- lm(instr_material ~ assignment, data=d)
+model_1_5 <- lm(instr_enthusiasm  ~ assignment, data=d)
 
 # Table 1
 stargazer(model_1_1,model_1_2, model_1_3, model_1_4, model_1_5, type='text')
