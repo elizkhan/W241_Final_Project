@@ -54,7 +54,11 @@ degrees = c("Bachelors degree","Associates degree","Masters degree")
 head(d)
 
 ```
-
+```{r}
+cols = c('Gender','Age','Education','assignment')
+d2 <- d[,..cols]
+sumtable(d2, group='assignment',group.test=TRUE,out="kable")
+```
 
 ## Figures and Tables
 
@@ -99,17 +103,28 @@ response_hist
 ```
 
 ```{r}
+
 ggplot(d, aes(x=assignment, y=avg_rating, fill=assignment))+
   geom_boxplot()+
   labs(title="Bar Chart of Treatment Assignment versus Average Instructor Rating",
         x ="Treatment Assignment", y = "Average Instructor Rating")
 ```
 
-```{r}
-ggplot(d, aes(x=video_watched, y=avg_rating, fill=assignment))+
+
+```{r, fig.width=8, fig.height=4}
+col_plot = c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating")
+cols = c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating","assignment","Gender")
+d3 = d[,..cols]
+dlong <- pivot_longer(d3, cols=col_plot, names_to = "Outcome", values_to = "Rating")
+dlong
+
+ggplot(dlong, aes(x=Outcome, y=Rating, fill=assignment))+
   geom_boxplot()+
-  labs(title="Bar Chart of Video Watched versus Average Instructor Rating",
-        x ="Video Watched", y = "Average Instructor Rating")+theme(axis.text.x = element_text(angle = -30))
+  labs(title="Overall Instructor Ratings by Treatment Assignment",
+        x ="Instructor Rating Type", y = "Rating (1-5)")+theme(axis.text.x = element_text(angle = 0))+
+   scale_x_discrete(breaks=c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating"),
+        labels=c("Enthusiasm","Professional","Subject", "Material","Instructor","Average Score"))
+
 ```
 
 ```{r}
@@ -175,9 +190,9 @@ for(age in ages)
   
 { print(age)
   
-treatment_avg = round(mean(d[(Age==age)&(assignment=='Treatment'),instr_rating]),2)
-control_avg = round(mean(d[(Age==age)&(assignment=='Control'),instr_rating]),2)
-p_val =round(t.test(d[(Age==age)&(assignment=='Treatment'),instr_rating], d[(Age==age)&(assignment=='Control'),instr_rating], conf.level = 0.95)$p.value,3)
+treatment_avg = round(mean(d[(assignment=='Treatment'),as.integer(ifelse((Age==age),1,0))]),2)
+control_avg = round(mean(d[(assignment=='Control'),as.integer(ifelse((Age==age),1,0))]),2)
+p_val =round(t.test(d[(assignment=='Treatment'),as.integer(ifelse((Age==age),1,0))], d[(assignment=='Control'),as.integer(ifelse((Age==age),1,0))], conf.level = 0.95)$p.value,3)
 table1 <-data.table(Age=age,mean_rating_control = control_avg, mean_rating_treatment = treatment_avg, p_value=p_val)
 p_values_ages<-rbind(p_values_ages, table1)
 }
@@ -202,14 +217,15 @@ p_values_genders<- data.table(Gender = character(), mean_rating_control = numeri
 for(gender in genders)
   
 { print(gender)
-treatment_avg =round(mean(d[(Gender==gender)&(assignment=='Treatment'),avg_rating]),2)
-control_avg =round(mean(d[(Gender==gender)&(assignment=='Control'),avg_rating]),2)
-p_val =round(t.test(d[(Gender==gender)&(assignment=='Treatment'),avg_rating], d[(Gender==gender)&(assignment=='Control'),avg_rating], conf.level = 0.95)$p.value,3)
+treatment_avg =round(mean(d[(assignment=='Treatment'),as.integer(ifelse((Gender==gender),1,0))]),2)
+control_avg =round(mean(d[(assignment=='Control'),as.integer(ifelse((Gender==gender),1,0))]),2)
+p_val =round(t.test(d[(assignment=='Treatment'),as.integer(ifelse((Gender==gender),1,0))], d[(assignment=='Control'),as.integer(ifelse((Gender==gender),1,0))], conf.level = 0.95)$p.value,3)
 table1 <-data.table(Gender=gender,mean_rating_control = control_avg, mean_rating_treatment = treatment_avg, p_value=p_val)
 p_values_genders<-rbind(p_values_genders, table1)
 }
 
 ```
+
 
 
 ```{r}
@@ -222,10 +238,10 @@ p_values_educations<- data.table(Education = character(), mean_rating_control = 
 for(education in educations)
   
 { print(education)
-treatment_avg =round(mean(d[(Education==education)&(assignment=='Treatment'),avg_rating]),2)
-control_avg =round(mean(d[(Education==education)&(assignment=='Control'),avg_rating]),2)
+treatment_avg =round(mean(d[(assignment=='Treatment'),as.integer(ifelse((Education==education),1,0))]),2)
+control_avg =round(mean(d[(assignment=='Control'),as.integer(ifelse((Education==education),1,0))]),2)
 if (education!= 'Less than High school') {
-p_val =round(t.test(d[(Education==education)&(assignment=='Treatment'),avg_rating], d[(Education==education)&(assignment=='Control'),avg_rating], conf.level = 0.95)$p.value,3)}
+p_val =round(t.test(d[(assignment=='Treatment'),as.integer(ifelse((Education==education),1,0))], d[(assignment=='Control'),as.integer(ifelse((Education==education),1,0))], conf.level = 0.95)$p.value,3)}
 else {p_val = NA}
 table1 <-data.table(Education=education,mean_rating_control = control_avg, mean_rating_treatment = treatment_avg, p_value=p_val)
 p_values_educations<-rbind(p_values_educations, table1)
@@ -239,6 +255,7 @@ p_values_all <- left_join(p_values_all, p_values_genders, by="Gender")
 
 head(p_values_all)
 ```
+
 
 
 ```{r}
@@ -307,7 +324,9 @@ covariate_summary4<-
 options(digits=3)
 table4<- summary_table(p_values_all , covariate_summary4)
 final <-cbind(table, table2,table3,table4)
-print(final, cname = c("Control (N = 108)","Treatment (N = 113)", "Mean Rating - Control", "Mean Rating - Treatment", "P-value"),digits=3)
+print(final, cname = c("Control (N = 108)","Treatment (N = 113)", "Mean - Control", "Mean - Treatment", "t-test (Diff in Means)"),digits=3, caption="Figure 3: Covariate Balance Table")
+
+print(kable(final, col.names = c("Control (N = 108)","Treatment (N = 113)", "Mean - Control", "Mean - Treatment", "t-test (Diff in Means)"),caption = "An example table caption."))
 ```
 
 

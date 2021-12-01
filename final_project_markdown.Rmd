@@ -1,0 +1,469 @@
+---
+title: "W241 Final Project Paper"
+author: "Elizabeth Khan, Estrella Ndrianasy, Chandni Shah, Michelle Shen, Catherine
+  Tsai"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+  html_document:
+    df_print: paged
+---
+
+
+\clearpage
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(magrittr)
+library(ggplot2)
+library(sandwich)
+library(lmtest)
+library(stargazer)
+library(stringr)
+library(tidyverse)
+library(gtsummary)
+library(vtable)
+library(cobalt)
+library(qwraps2)
+#library(xtables)
+library(writexl)
+library(webshot)
+
+theme_set(theme_minimal())
+options(tinytex.verbose = TRUE)
+options(warn=-1)
+```
+
+## Background
+
+Female instructors face challenges with gender stereotypes that can impact their future earning potentials and career growth. Specifically for women in academia, numerous studies have demonstrated that students treat and evaluate female professors differently than male professors. Female professors are also often held to higher standards and subjected to a greater number of demands and requests from their students.[2] In this experiment, we seek to understand if gender bias alters students’ perception of an instructor’s quality of programming and technical instruction.
+
+
+## Research Question
+
+Does an instructor’s perceived gender influence the perceived quality of instruction?
+
+## Hypothesis
+
+We hypothesize that the treatment of changing perceived gender of the instructor will impact the measured instructor ratings from students due to historical evidence of gender bias in academia favoring men’s performance, grant and award-winning potential, resource allocation, and tenure that continues to reinforce gender wage gaps and lead to better career outcomes for men. Specifically, in an academic learning setting, we suspect that implicit gender biases against women can be observed when evaluating instructor performance by exposing the treatment group to instructors they perceive as female.
+
+
+
+```{r powertest, include=FALSE}
+pwr <- data.table()
+
+# we expect to have 56 subjects in the treatments and control groups
+pwr[ , condition := rep(c('control', 'treatment'), each = 56)]
+
+#Based on Gender Bias in Student Evaluations Study by Kristina Mitchell and Johnathan Martin outcome variable was 5-point likhert scale
+male_instructor = mean(3.84, 3.71, 3.71, 3.83, 3.96)
+female_instructor = mean(3.44, 3.31, 3.49, 3.64, 3.97)
+
+pwr[condition == 'control', Y := rnorm(.N, mean = female_instructor, sd = .65)]
+pwr[condition == 'treatment', Y := rnorm(.N, mean = male_instructor, sd = .5)]
+
+#p[ , t.test(Y ~ condition)]
+
+power_test_t <- function(
+                          mean_control = female_instructor,
+                          mean_treat = male_instructor,
+                          sd_control = .5,
+                          sd_treat = .65,
+                          number_per_condition = 56,
+                          power_loops = 100,
+                          ri_loops = 100,
+                          verbose = TRUE) {
+                          p_values <- NA
+                          ri <- NA
+                          pwr <- data.table()
+                          1
+                          pwr[ , condition := rep(c('control', 'treatment'), each = number_per_condition)]
+                          for(power_loop in 1:power_loops) {
+                          p_values[power_loop] <- t.test(
+                          x = rnorm(number_per_condition, mean = mean_control, sd = sd_control),
+                          y = rnorm(number_per_condition, mean = mean_treat, sd = sd_treat)
+                          )$p.value
+                          }
+                          return(list(
+                          'p_values' = p_values,
+                          'power' = mean(p_values < 0.05)
+                          ))
+}
+
+power = power_test_t(power_loops = 100)$power
+```
+
+## Experiment Design
+
+Our experiment featured a randomized, between-subjects design with a 2x4 blocked design on participants’ gender and age groups to ensure equal treatment distribution among each of the blocked populations. The sample design consisted of 112 participants equally split between males (n = 56) and females (n = 56). Prior to conducting the experiment, a statistical power test was completed to understand if having a sample size of at least 112 participants (56 subjects in the treatment and control groups) would be sufficient to observe the treatment effect (if indeed there is one). The treatment effect in this simulation was estimated from the average outcome from the Gender Bias in Student Evaluations Study by Kristina Mitchell and Johnathan Martin. The statistical power test demonstrated that `r round(power*100,0)`% of all potential random assignments will reject the null hypothesis if indeed there is a treatment effect. Therefore, this suggests that a sample size of at least 112 is enough to detect the treatment effect.
+
+
+## Methods
+
+A video featuring a Python programming informational slideshow was created. Three (3) men and three women volunteers recorded voice overs narrating the video using the same script. Volunteers were given timestamps to standardize pacing of the 6 resulting videos. Neither videos nor images of volunteers were incorporated into the final videos. 
+A questionnaire containing thirteen (13) survey questions (see Appendix A) was generated to collect information on two main outcomes. First, the subject is asked five (5) primary outcome questions to collect information on how a subject perceived their instructor from the video. Primary outcome questions use a 5-point Likert Scale for subjects to rate the quality of the instructor’s performance in categories such as overall instructor effectiveness, competence/knowledge in subject matter, instructor enthusiasm and professionalism. One (1) attention check question is administered at this time. Next, the subject is asked four (4) secondary objective outcome questions to test video content retention among respondents. Questions are presented in multiple-choice format with one correct response. Lastly, relevant demographic information from each subject is collected with three (3) final questions.
+
+Six Qualtrics surveys were generated. Each Qualtrics survey contained only one of the six videos with either a male or a female voice over, followed by the questionnaire. A 10 second timer was added to each page of the survey.
+
+## Recruitment Process
+
+A social science subject-recruiting company called Survey Swap was used to identify subjects, administer the Qualtrics video and survey, and record subject responses. To qualify for the survey, we stipulated subjects must be located in the United States, be over the age of 20, and identify as a native English speaker. The goal of this criteria requirement was to allow us to capture treatment effects for adults in the United States. Subjects who qualified for the survey were randomly redirected to one of the six Qualtrics surveys, where they were asked to view the video. After viewing the video, subjects were asked to fill out the survey questions. Survey responses from only subjects that correctly answered the attention check question responses were recorded. 
+
+We defined the control group as consisting of subjects who watched an instructional video voiced using a male voiceover and the treatment group as consisting of subjects who were treated with the same video voiced using a female instead of a male voiceover. To control for cadence, pitch, tone, and other characteristics that vary among both men’s and women’s voices, we used a total of six voiceovers from three men and three women.
+
+## Data Preperation
+
+```{r survey, echo=FALSE}
+# Import data and remove invalid age 
+
+d <- fread("survey_cleaned_with_states.csv")
+
+d <- d[Age!='Other']
+
+# Removing company test response 52.36
+d <- d[ResponseId!='R_2WC5vlB2DCvHHrH']
+
+degrees = c("Bachelors degree","Associates degree","Masters degree")
+
+# create column to indicate whether or not subject has a college degree
+
+# d<- d[,college_degree:= ifelse(Education %in% degrees, 1,0)]
+
+```
+
+
+## Subject Demographics
+
+Data from 222 total subjects was received from Survey Swap. Of those subjects, 49% were assigned to the control group and 51% were assigned to the treatment group. In the tables below you can observe the full summary of subjects within each gender and age block, along with education level.
+
+```{r table1, echo=FALSE, message=FALSE,results = "asis"}
+d %>%
+  select(Gender, assignment, Age) %>%
+  tbl_summary(by = Gender) %>%
+  add_overall()%>%
+  modify_caption("Respondents by Age Group and Gender")
+```
+
+```{r table2, echo=FALSE, message=FALSE,results = "asis"}
+d %>%
+  select(Gender, Education, assignment) %>%
+  tbl_summary(by = assignment) %>%
+  add_overall()%>%
+  modify_caption("Respondents by Education and Treatment Assignment")
+```
+```{r randomization, echo=FALSE}
+
+null_model <-lm(assigned~1, data=d)
+
+full_model <- lm(assigned~1 +as.factor(Age)+as.factor(Gender), data=d)
+
+f_test <-anova(full_model, null_model, test='F')
+# f_test$`Pr(>F)`[2]
+```
+
+## Randomization
+
+While blocked randomization was completed through the distribution of surveys by Survey Swap, we conducted our own randomization check upon receiving the data. To conduct this check, we utilized an F-Test in R to test if subjects were equally assigned to the control and treatment group based on their age and gender blocks. The p-value for this test was not statistically significant at 0.795 and therefore we fail to reject the null hypothesis.  The results of our test suggest covariate balance within each block and that the blocks were successfully randomized.
+
+
+## Pre-Treatment Covariates
+
+We hypothesized gender, age, and level of education of subjects may influence the outcome measure. To account for these covariates, a covariate balance check was conducted to evaluate if the distributions of the covariates were similar between the treatment and control groups. Findings suggested there is no imbalance between pre-treatment covariates, as none of the p-values were statistically significant.
+
+```{r covariate balance check, include=FALSE}
+covs <- c('Age','Gender','Education', 'assignment','avg_rating')
+subset <- d[,..covs]
+
+head(subset)
+options(qwraps2_markup = 'markdown')
+covariate_summary <-
+  list("Gender" =
+       list("Male"      = ~ qwraps2::n_perc(Gender == 'Male'),
+            "Female"    = ~ qwraps2::n_perc(Gender == 'Female')),
+      "Age" =
+       list("20-30" = ~ qwraps2::n_perc(Age == '20-30'),
+            "30-40"  = ~ qwraps2::n_perc(Age == '30-40'),
+            "40-50"  = ~ qwraps2::n_perc(Age == '40-50'),
+            "50+" = ~ qwraps2::n_perc(Age == '50+')),
+       "Education" =
+       list("Less than High school" = ~ qwraps2::n_perc(Education == 'Less than High school'),
+            "High school diploma"  = ~ qwraps2::n_perc(Education == 'High school diploma'),
+            "Some College No degree"  = ~ qwraps2::n_perc(Education == 'Some College No degree'),
+            "Associates degree"  = ~ qwraps2::n_perc(Education == 'Associates degree'),
+            "Bachelors degree"  = ~ qwraps2::n_perc(Education == 'Bachelors degree'),
+            "Masters degree"  = ~ qwraps2::n_perc(Education == 'Masters degree'))
+       )
+
+table <- summary_table(subset, covariate_summary, by = c("assignment"))
+
+ages <- unique(d[,Age])
+p_values_ages <- data.table(Age = character(), mean_rating_control = numeric(), mean_rating_treatment = numeric(), p_value=numeric())
+
+
+ 
+for(age in ages)
+  
+{ print(age)
+  
+treatment_avg = round(mean(d[(assignment=='Treatment'),as.integer(ifelse((Age==age),1,0))]),2)
+control_avg = round(mean(d[(assignment=='Control'),as.integer(ifelse((Age==age),1,0))]),2)
+p_val =round(t.test(d[(assignment=='Treatment'),as.integer(ifelse((Age==age),1,0))], d[(assignment=='Control'),as.integer(ifelse((Age==age),1,0))], conf.level = 0.95)$p.value,3)
+table1 <-data.table(Age=age,mean_rating_control = control_avg, mean_rating_treatment = treatment_avg, p_value=p_val)
+p_values_ages<-rbind(p_values_ages, table1)
+}
+
+p_values_ages <- unique(p_values_ages)
+
+genders <- unique(d[,Gender])
+p_values_genders<- data.table(Gender = character(), mean_rating_control = numeric(), mean_rating_treatment = numeric(), p_value=numeric())
+
+
+ 
+for(gender in genders)
+  
+{ print(gender)
+treatment_avg =round(mean(d[(assignment=='Treatment'),as.integer(ifelse((Gender==gender),1,0))]),2)
+control_avg =round(mean(d[(assignment=='Control'),as.integer(ifelse((Gender==gender),1,0))]),2)
+p_val =round(t.test(d[(assignment=='Treatment'),as.integer(ifelse((Gender==gender),1,0))], d[(assignment=='Control'),as.integer(ifelse((Gender==gender),1,0))], conf.level = 0.95)$p.value,3)
+table1 <-data.table(Gender=gender,mean_rating_control = control_avg, mean_rating_treatment = treatment_avg, p_value=p_val)
+p_values_genders<-rbind(p_values_genders, table1)
+}
+
+educations <- unique(d[,Education])
+p_values_educations<- data.table(Education = character(), mean_rating_control = numeric(), mean_rating_treatment = numeric(), p_value=numeric())
+
+
+
+ 
+for(education in educations)
+  
+{ print(education)
+treatment_avg =round(mean(d[(assignment=='Treatment'),as.integer(ifelse((Education==education),1,0))]),2)
+control_avg =round(mean(d[(assignment=='Control'),as.integer(ifelse((Education==education),1,0))]),2)
+if (education!= 'Less than High school') {
+p_val =round(t.test(d[(assignment=='Treatment'),as.integer(ifelse((Education==education),1,0))], d[(assignment=='Control'),as.integer(ifelse((Education==education),1,0))], conf.level = 0.95)$p.value,3)}
+else {p_val = NA}
+table1 <-data.table(Education=education,mean_rating_control = control_avg, mean_rating_treatment = treatment_avg, p_value=p_val)
+p_values_educations<-rbind(p_values_educations, table1)
+}
+
+p_values_all <- left_join(subset, p_values_ages, by="Age")
+p_values_all <- left_join(p_values_all, p_values_educations, by="Education")
+
+p_values_all <- left_join(p_values_all, p_values_genders, by="Gender")
+
+```
+
+```{r balance,echo=FALSE,  results = "asis"}
+
+options(qwraps2_markup = 'markdown')
+
+covariate_summary2<-
+  list("Gender" =
+       list("Male"      = ~ max(as.numeric(ifelse(Gender == 'Male',mean_rating_control,0))),
+            "Female"    = ~ max(as.numeric(ifelse(Gender == 'Female',mean_rating_control,0)))),
+       "Age" =
+       list("20-30" = ~ max(as.numeric(ifelse(Age == '20-30',mean_rating_control.x,0))),
+            "30-40"  = ~ max(as.numeric(ifelse(Age == '30-40',mean_rating_control.x,0))),
+            "40-50"  = ~ max(as.numeric(ifelse(Age == '40-50',mean_rating_control.x,0))),
+            "50+" = ~ max(as.numeric(ifelse(Age == '50+',mean_rating_control.x,0)))),
+       "Education" =
+       list("Less than High school" = ~ max(as.numeric(ifelse(Education == 'Less than High school',mean_rating_control.y,0))),
+            "High school diploma"  = ~ max(as.numeric(ifelse(Education == 'High school diploma',mean_rating_control.y,0))),
+            "Some College No degree"  = ~ max(as.numeric(ifelse(Education == 'Some College No degree',mean_rating_control.y,0))),
+            "Associates degree"  = ~ max(as.numeric(ifelse(Education == 'Associates degree',mean_rating_control.y,0))),
+            "Bachelors degree"  = ~ max(as.numeric(ifelse(Education == 'Bachelors degree',mean_rating_control.y,0))),
+            "Masters degree"  = ~ max(as.numeric(ifelse(Education == 'Masters degree',mean_rating_control.y,0))))
+       )
+
+table2<- summary_table(p_values_all , covariate_summary2)
+
+
+covariate_summary3<-
+  list("Gender" =
+       list("Male"      = ~ max(as.numeric(ifelse(Gender == 'Male',mean_rating_treatment,0))),
+            "Female"    = ~ max(as.numeric(ifelse(Gender == 'Female',mean_rating_treatment,0)))),
+       "Age" =
+       list("20-30" = ~ max(as.numeric(ifelse(Age == '20-30',mean_rating_treatment.x,0))),
+            "30-40"  = ~ max(as.numeric(ifelse(Age == '30-40',mean_rating_treatment.x,0))),
+            "40-50"  = ~ max(as.numeric(ifelse(Age == '40-50',mean_rating_treatment.x,0))),
+            "50+" = ~ max(as.numeric(ifelse(Age == '50+',mean_rating_treatment.x,0)))),
+       "Education" =
+       list("Less than High school" = ~ max(as.numeric(ifelse(Education == 'Less than High school',mean_rating_treatment.y,0))),
+            "High school diploma"  = ~ max(as.numeric(ifelse(Education == 'High school diploma',mean_rating_treatment.y,0))),
+            "Some College No degree"  = ~ max(as.numeric(ifelse(Education == 'Some College No degree',mean_rating_treatment.y,0))),
+            "Associates degree"  = ~ max(as.numeric(ifelse(Education == 'Associates degree',mean_rating_treatment.y,0))),
+            "Bachelors degree"  = ~ max(as.numeric(ifelse(Education == 'Bachelors degree',mean_rating_treatment.y,0))),
+            "Masters degree"  = ~ max(as.numeric(ifelse(Education == 'Masters degree',mean_rating_treatment.y,0))))
+       )
+
+table3<- summary_table(p_values_all , covariate_summary3)
+
+covariate_summary4<-
+  list("Gender" =
+       list("Male"      = ~ max(as.numeric(ifelse(Gender == 'Male',p_value,0))),
+            "Female"    = ~ max(as.numeric(ifelse(Gender == 'Female',p_value,0)))),
+       "Age" =
+       list("20-30" = ~ max(as.numeric(ifelse(Age == '20-30',p_value.x,0))),
+            "30-40"  = ~ max(as.numeric(ifelse(Age == '30-40',p_value.x,0))),
+            "40-50"  = ~ max(as.numeric(ifelse(Age == '40-50',p_value.x,0))),
+            "50+" = ~ max(as.numeric(ifelse(Age == '50+',p_value.x,0)))),
+       "Education" =
+       list("Less than High school" = ~ max(as.numeric(ifelse(Education == 'Less than High school',p_value.y,0))),
+            "High school diploma"  = ~ max(as.numeric(ifelse(Education == 'High school diploma',p_value.y,0))),
+            "Some College No degree"  = ~ max(as.numeric(ifelse(Education == 'Some College No degree',p_value.y,0))),
+            "Associates degree"  = ~ max(as.numeric(ifelse(Education == 'Associates degree',p_value.y,0))),
+            "Bachelors degree"  = ~ max(as.numeric(ifelse(Education == 'Bachelors degree',p_value.y,0))),
+            "Masters degree"  = ~ max(as.numeric(ifelse(Education == 'Masters degree',p_value.y,0))))
+       )
+
+options(digits=3)
+table4<- summary_table(p_values_all , covariate_summary4)
+final <-cbind(table, table2,table3,table4)
+print(final, cname = c("Control (N = 108)","Treatment (N = 113)", "% - Control", "% - Treatment", "t-test (Diff in Means)"),digits=3, caption="Table 3: Covariate Balance Test")
+
+```
+## Results
+
+While data from only 112 subjects was requested, Survey Swap provided responses from 222 total subjects who passed the attention check.
+Our analysis explores both the overall instructor rating (an average of the five ratings) and each instructor rating separately. From the histogram below, we can observe slight differences in the distribution of ratings within the treatment and control groups for the overall instructor rating. While the distribution of both groups are slightly skewed to the left, we observe the majority of subjects in the control group rated the instructor 4 out of 5 and the majority of subjects in the treatment group rated the instructor 3 out of 5. While the distributions of the assignment groups differ, we can see in the box plot below the mean ratings between groups are similar.
+
+
+```{r instr_enthusiam treatment v. control, echo=FALSE}
+
+response_hist <- d %>%
+  ggplot() +
+  aes(x = instr_rating, color=assignment) +
+  geom_histogram(alpha = 0.5, bins=5) +
+  labs(
+    title  = 'Figure 1: Instructor Overall Rating by Treatment and Control',
+    x      = 'Instructor Overall Rating',
+    y      = 'Number of Responses'
+  ) +
+  theme_light() +
+  facet_wrap(~ assignment)
+
+response_hist
+
+
+```
+
+```{r, fig.width=8, fig.height=4, echo=FALSE}
+col_plot = c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating")
+cols = c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating","assignment","Gender")
+d3 = d[,..cols]
+dlong <- pivot_longer(d3, cols=col_plot, names_to = "Outcome", values_to = "Rating")
+
+ggplot(dlong, aes(x=Outcome, y=Rating, fill=assignment))+
+  geom_boxplot()+
+  labs(title="Figure 2: Overall Instructor Ratings by Treatment Assignment",
+        x ="Instructor Rating Type", y = "Rating (1-5)")+theme(axis.text.x = element_text(angle = 0))+
+   scale_x_discrete(breaks=c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating"),
+        labels=c("Enthusiasm","Professional","Subject", "Material","Instructor","Average Score"))
+
+```
+
+```{r baseline, echo=FALSE, include=FALSE}
+# Table 1: Baseline models Outcome ~ Treatment
+model_1_1 <- lm(avg_rating ~ assignment, data=d)
+model_1_2 <- lm(instr_rating ~ assignment, data=d)
+model_1_3 <- lm(instr_subject ~ assignment, data=d)
+model_1_4 <- lm(instr_material ~ assignment, data=d)
+model_1_5 <- lm(instr_enthusiasm  ~ assignment, data=d)
+
+# Table 1
+stargazer(model_1_1,model_1_2, model_1_3, model_1_4, model_1_5,
+          type='html',title = 'Table 4: Baseline Model Results',
+          covariate.labels=c("Male Instructor Video","Constant"),
+          dep.var.labels=c("Average Rating","Instructor","Subject","Material","Enthusiasm"),
+          out='models1.htm')
+
+
+screenshot <- webshot("models1.htm", "models1.png", cliprect = "viewport")
+
+```
+
+```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
+knitr::include_graphics("models1.png")
+```
+
+```{r blocks, echo=FALSE, include=FALSE}
+# Table 2: Outcome with Pre-treatment blocks (Age and Gender)
+model_2_1 <- lm(avg_rating ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_2_2 <- lm(instr_rating ~ as.factor(Age) + as.factor(Gender)+ assignment, data=d)
+model_2_3 <- lm(instr_subject ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_2_4 <- lm(instr_material ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_2_5 <- lm(instr_enthusiasm ~ as.factor(Age) + as.factor(Gender)+assignment , data=d)
+
+# Table 2
+stargazer(model_2_1,model_2_2, model_2_3, model_2_4, model_2_5, 
+          covariate.labels=c("Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male Instructor Video","Constant"),
+          dep.var.labels=c("Average Rating","Instructor","Subject","Material","Enthusiasm"),
+          title = 'Table 5: Outcome with Blocks',
+          type='html',out='models2.htm')
+
+screenshot <- webshot("models2.htm", "models2.png", cliprect = "viewport")
+
+```
+
+```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
+knitr::include_graphics("models2.png")
+```
+
+```{r interaction, echo=FALSE, include=FALSE}
+
+# Table 3: Outcome with Pre-treatment blocks (Age and Gender) and interaction term (gender*treatment)
+model_3_1 <- lm(avg_rating ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
+model_3_2 <- lm(instr_rating ~ as.factor(Age) + as.factor(Gender)+ assignment +as.factor(Gender)*assignment, data=d)
+model_3_3 <- lm(instr_subject ~ as.factor(Age) + as.factor(Gender)+assignment+as.factor(Gender)*assignment, data=d)
+model_3_4 <- lm(instr_material ~ as.factor(Age) + as.factor(Gender)+assignment+as.factor(Gender)*assignment, data=d)
+model_3_5 <- lm(instr_enthusiasm ~ as.factor(Age) + as.factor(Gender)+assignment+as.factor(Gender)*assignment, data=d)
+
+
+# Table 3
+stargazer(model_3_1,model_3_2, model_3_3, model_3_4, model_3_5,
+          covariate.labels=c("Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male Instructor Video","Male:Male Instructor Video","Constant"),
+          dep.var.labels=c("Average Rating","Instructor","Subject","Material","Enthusiasm"),
+          title = 'Table 6: Interaction between Gender and Treatment',
+          type='html',out='models3.htm')
+
+screenshot <- webshot("models3.htm", "models3.png", cliprect = "viewport")
+
+```
+```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
+knitr::include_graphics("models3.png")
+```
+
+```{r quiz , echo=FALSE, include=FALSE}
+
+# Table 4:
+
+# base model 
+model_4_1 <- lm(quiz_avg~ assignment, data=d)
+model_4_2 <- lm(quiz_avg ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_4_3 <- lm(quiz_avg ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
+
+
+#models with blocking across quiz averages
+stargazer(model_4_1, model_4_2,model_4_3, 
+          covariate.labels=c("Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male Instructor Video","Male:Male Instructor Video","Constant"),
+          dep.var.labels=c("Quiz Score"),
+          title = 'Table 7: Interaction between Gender and Treatment',
+          type = 'html',out='models4.htm')
+
+screenshot <- webshot("models4.htm", "models4.png", cliprect = "viewport")
+```
+
+```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
+knitr::include_graphics("models4.png")
+```
+
+## Analysis
+
+## Discussion
+
+## Conclusion
+
+## Limitations and Future Enhancements
