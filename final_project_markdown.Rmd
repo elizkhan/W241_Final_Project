@@ -36,6 +36,13 @@ options(tinytex.verbose = TRUE)
 options(warn=-1)
 ```
 
+```{r robustse, include=FALSE, echo=FALSE}
+get_robust_se <- function(model) { 
+    require(sandwich)
+    
+    sqrt(diag(sandwich::vcovHC(model)))
+  }
+```
 ## Background
 
 Female instructors face challenges with gender stereotypes that can impact their future earning potentials and career growth. Specifically for women in academia, numerous studies have demonstrated that students treat and evaluate female professors differently than male professors. Female professors are also often held to higher standards and subjected to a greater number of demands and requests from their students.[2] In this experiment, we seek to understand if gender bias alters students’ perception of an instructor’s quality of programming and technical instruction.
@@ -350,7 +357,7 @@ response_hist
 
 ```
 
-```{r, fig.width=8, fig.height=4, echo=FALSE}
+```{r, fig.width=8, fig.height=4, echo=FALSE, message=FALSE}
 col_plot = c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating")
 cols = c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating","assignment","Gender")
 d3 = d[,..cols]
@@ -365,6 +372,9 @@ ggplot(dlong, aes(x=Outcome, y=Rating, fill=assignment))+
 
 ```
 
+$Outcome=\beta_0+\beta_1 Male Instructor Video$
+
+
 ```{r baseline, echo=FALSE, include=FALSE}
 # Table 1: Baseline models Outcome ~ Treatment
 model_1_1 <- lm(avg_rating ~ assignment, data=d)
@@ -378,6 +388,7 @@ stargazer(model_1_1,model_1_2, model_1_3, model_1_4, model_1_5,
           type='html',title = 'Table 4: Baseline Model Results',
           covariate.labels=c("Male Instructor Video","Constant"),
           dep.var.labels=c("Average Rating","Instructor","Subject","Material","Enthusiasm"),
+          se = list(get_robust_se(model_1_1),get_robust_se(model_1_2), get_robust_se(model_1_3), get_robust_se(model_1_4),    get_robust_se(model_1_5)),
           out='models1.htm')
 
 
@@ -385,22 +396,24 @@ screenshot <- webshot("models1.htm", "models1.png", cliprect = "viewport")
 
 ```
 
+
 ```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
 knitr::include_graphics("models1.png")
 ```
 
 ```{r blocks, echo=FALSE, include=FALSE}
 # Table 2: Outcome with Pre-treatment blocks (Age and Gender)
-model_2_1 <- lm(avg_rating ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
-model_2_2 <- lm(instr_rating ~ as.factor(Age) + as.factor(Gender)+ assignment, data=d)
-model_2_3 <- lm(instr_subject ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
-model_2_4 <- lm(instr_material ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
-model_2_5 <- lm(instr_enthusiasm ~ as.factor(Age) + as.factor(Gender)+assignment , data=d)
+model_2_1 <- lm(avg_rating ~ assignment + as.factor(Age) + as.factor(Gender), data=d)
+model_2_2 <- lm(instr_rating ~ assignment + as.factor(Age) + as.factor(Gender), data=d)
+model_2_3 <- lm(instr_subject ~ assignment + as.factor(Age) + as.factor(Gender), data=d)
+model_2_4 <- lm(instr_material ~ assignment+ as.factor(Age) + as.factor(Gender), data=d)
+model_2_5 <- lm(instr_enthusiasm ~ assignment + as.factor(Age) + as.factor(Gender) , data=d)
 
 # Table 2
 stargazer(model_2_1,model_2_2, model_2_3, model_2_4, model_2_5, 
-          covariate.labels=c("Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male Instructor Video","Constant"),
+          covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Constant"),
           dep.var.labels=c("Average Rating","Instructor","Subject","Material","Enthusiasm"),
+          se = list(get_robust_se(model_2_1),get_robust_se(model_2_2), get_robust_se(model_2_3), get_robust_se(model_2_4),    get_robust_se(model_2_5)),
           title = 'Table 5: Outcome with Blocks',
           type='html',out='models2.htm')
 
@@ -408,24 +421,28 @@ screenshot <- webshot("models2.htm", "models2.png", cliprect = "viewport")
 
 ```
 
+$Outcome=\beta_0+\beta_1 Male Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:40-50\ +\beta_4Age:50+\beta_5Male$
+
 ```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
 knitr::include_graphics("models2.png")
 ```
+$Outcome=\beta_0+\beta_1 Male Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:40-50\ +\beta_4Age:50+\beta_5Male +\beta_6(Male*MaleInstructorVideo)$
 
 ```{r interaction, echo=FALSE, include=FALSE}
 
 # Table 3: Outcome with Pre-treatment blocks (Age and Gender) and interaction term (gender*treatment)
-model_3_1 <- lm(avg_rating ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
-model_3_2 <- lm(instr_rating ~ as.factor(Age) + as.factor(Gender)+ assignment +as.factor(Gender)*assignment, data=d)
-model_3_3 <- lm(instr_subject ~ as.factor(Age) + as.factor(Gender)+assignment+as.factor(Gender)*assignment, data=d)
-model_3_4 <- lm(instr_material ~ as.factor(Age) + as.factor(Gender)+assignment+as.factor(Gender)*assignment, data=d)
-model_3_5 <- lm(instr_enthusiasm ~ as.factor(Age) + as.factor(Gender)+assignment+as.factor(Gender)*assignment, data=d)
+model_3_1 <- lm(avg_rating ~ assignment+ as.factor(Age) + as.factor(Gender) +as.factor(Gender)*assignment, data=d)
+model_3_2 <- lm(instr_rating ~ assignment+ as.factor(Age) + as.factor(Gender) +as.factor(Gender)*assignment, data=d)
+model_3_3 <- lm(instr_subject ~ assignment+ as.factor(Age) + as.factor(Gender)+as.factor(Gender)*assignment, data=d)
+model_3_4 <- lm(instr_material ~ assignment+ as.factor(Age) + as.factor(Gender)+as.factor(Gender)*assignment, data=d)
+model_3_5 <- lm(instr_enthusiasm ~ assignment+as.factor(Age) + as.factor(Gender)+as.factor(Gender)*assignment, data=d)
 
 
 # Table 3
 stargazer(model_3_1,model_3_2, model_3_3, model_3_4, model_3_5,
-          covariate.labels=c("Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male Instructor Video","Male:Male Instructor Video","Constant"),
+          covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Constant"),
           dep.var.labels=c("Average Rating","Instructor","Subject","Material","Enthusiasm"),
+          se = list(get_robust_se(model_3_1),get_robust_se(model_3_2), get_robust_se(model_3_3), get_robust_se(model_3_4),    get_robust_se(model_3_5)),
           title = 'Table 6: Interaction between Gender and Treatment',
           type='html',out='models3.htm')
 
@@ -435,6 +452,12 @@ screenshot <- webshot("models3.htm", "models3.png", cliprect = "viewport")
 ```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
 knitr::include_graphics("models3.png")
 ```
+$Quiz \ Score=\beta_0+\beta_1 Male Instructor Video$
+
+$Quiz \ Score=\beta_0+\beta_1 Male Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:40-50\ +\beta_4Age:50+\beta_5Male$
+
+$Quiz \ Score=\beta_0+\beta_1 Male Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:40-50\ +\beta_4Age:50+\beta_5Male +\beta_6(Male*MaleInstructorVideo)$
+
 
 ```{r quiz , echo=FALSE, include=FALSE}
 
@@ -442,15 +465,16 @@ knitr::include_graphics("models3.png")
 
 # base model 
 model_4_1 <- lm(quiz_avg~ assignment, data=d)
-model_4_2 <- lm(quiz_avg ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
-model_4_3 <- lm(quiz_avg ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
+model_4_2 <- lm(quiz_avg ~ assignment+as.factor(Age) + as.factor(Gender), data=d)
+model_4_3 <- lm(quiz_avg ~ assignment + as.factor(Age) + as.factor(Gender) +as.factor(Gender)*assignment, data=d)
 
 
 #models with blocking across quiz averages
 stargazer(model_4_1, model_4_2,model_4_3, 
-          covariate.labels=c("Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male Instructor Video","Male:Male Instructor Video","Constant"),
+          covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Constant"),
           dep.var.labels=c("Quiz Score"),
-          title = 'Table 7: Interaction between Gender and Treatment',
+          se = list(get_robust_se(model_4_1),get_robust_se(model_4_2), get_robust_se(model_4_3)),
+          title = 'Table 7: Quiz Score Models',
           type = 'html',out='models4.htm')
 
 screenshot <- webshot("models4.htm", "models4.png", cliprect = "viewport")
