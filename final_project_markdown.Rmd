@@ -145,21 +145,26 @@ degrees = c("Bachelors degree","Associates degree","Masters degree")
 
 Data from 222 total subjects was received from Survey Swap. Of those subjects, 49% were assigned to the control group and 51% were assigned to the treatment group. In the tables below you can observe the full summary of subjects within each gender and age block, along with education level.
 
-```{r table1, echo=FALSE, message=FALSE,results = "asis"}
-d %>%
+```{r table1_2, echo=FALSE, message=FALSE}
+ 
+table1 <- d %>%
   select(Gender, assignment, Age) %>%
   tbl_summary(by = Gender) %>%
   add_overall()%>%
   modify_caption("Respondents by Age Group and Gender")
-```
-
-```{r table2, echo=FALSE, message=FALSE,results = "asis"}
-d %>%
+table2 <- d %>%
   select(Gender, Education, assignment) %>%
   tbl_summary(by = assignment) %>%
   add_overall()%>%
   modify_caption("Respondents by Education and Treatment Assignment")
+as_kable_extra(table1)%>%kable_styling(latex_options = "HOLD_position") 
+as_kable_extra(table2)%>%kable_styling(latex_options = "HOLD_position")  
+
 ```
+
+
+
+
 ```{r randomization, echo=FALSE}
 
 null_model <-lm(assigned~1, data=d)
@@ -169,6 +174,7 @@ full_model <- lm(assigned~1 +as.factor(Age)+as.factor(Gender), data=d)
 f_test <-anova(full_model, null_model, test='F')
 # f_test$`Pr(>F)`[2]
 ```
+
 
 ## Randomization
 
@@ -329,7 +335,7 @@ covariate_summary4<-
 options(digits=3)
 table4<- summary_table(p_values_all , covariate_summary4)
 final <-cbind(table, table2,table3,table4)
-print(final, cname = c("Control (N = 108)","Treatment (N = 113)", "% - Control", "% - Treatment", "t-test (Diff in Means)"),digits=3, caption="Table 3: Covariate Balance Test")
+print(final, cname = c("Control (N = 108)","Treatment (N = 113)", "Mean - Control", "Mean - Treatment", "t-test (p-value)"),digits=3, caption="Covariate Balance Test")
 
 ```
 ## Results

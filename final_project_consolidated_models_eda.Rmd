@@ -175,7 +175,7 @@ covariate_summary <-
 table <- summary_table(subset, covariate_summary, by = c("assignment"))
 
 
-table
+
 ```
 ```{r}
 unique(d$Education)
