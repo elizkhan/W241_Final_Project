@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (TeX Live 2021/W32TeX) (preloaded format=xelatex 2021.11.15)  2 DEC 2021 16:13
+This is XeTeX, Version 3.141592653-2.6-0.999993 (TeX Live 2021/W32TeX) (preloaded format=xelatex 2021.11.15)  5 DEC 2021 20:44
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1025,21 +1025,28 @@ File: final_project_markdown_files/figure-latex/instr_enthusiam treatment v. co
 ntrol-1.pdf Graphic file (type pdf)
 <use final_project_markdown_files/figure-latex/instr_enthusiam treatment v. con
 trol-1.pdf>
-File: final_project_markdown_files/figure-latex/unnamed-chunk-1-1.pdf Graphic f
+File: final_project_markdown_files/figure-latex/unnamed-chunk-2-1.pdf Graphic f
 ile (type pdf)
-<use final_project_markdown_files/figure-latex/unnamed-chunk-1-1.pdf>
+<use final_project_markdown_files/figure-latex/unnamed-chunk-2-1.pdf>
 [5]
 File: models1.png Graphic file (type bmp)
 <models1.png>
+[6]
 File: models2.png Graphic file (type bmp)
 <models2.png>
-[6]
+[7]
 File: models3.png Graphic file (type bmp)
 <models3.png>
-[7]
+[8]
 File: models4.png Graphic file (type bmp)
 <models4.png>
-[8] [9] (./final_project_markdown.aux)
+[9]
+File: models5.png Graphic file (type bmp)
+<models5.png>
+[10]
+File: models6.png Graphic file (type bmp)
+<models6.png>
+[11] [12] (./final_project_markdown.aux)
 
 LaTeX Warning: There were multiply-defined labels.
 
@@ -1048,12 +1055,12 @@ Package rerunfilecheck Info: File `final_project_markdown.out' has not changed.
 (rerunfilecheck)             Checksum: 52D5DD0FACF2E45865AE823D1166AD3A;1815.
  ) 
 Here is how much of TeX's memory you used:
- 18583 strings out of 478274
- 341898 string characters out of 5854886
- 810401 words of memory out of 5000000
- 38821 multiletter control sequences out of 15000+600000
+ 18617 strings out of 478274
+ 342446 string characters out of 5854886
+ 809407 words of memory out of 5000000
+ 38855 multiletter control sequences out of 15000+600000
  409947 words of font info for 76 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 86i,13n,121p,385b,398s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 86i,13n,121p,385b,436s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on final_project_markdown.pdf (9 pages).
+Output written on final_project_markdown.pdf (12 pages).
