@@ -151,6 +151,8 @@ degrees = c("Bachelors degree","Associates degree","Masters degree")
 #d <- fread("survey_cleaned_with_states.csv")
 #d <- d[ResponseId!='R_2WC5vlB2DCvHHrH']
 #dropped <- d[Age=='Other']
+
+d
 ```
 ## Subject Demographics
 
@@ -397,114 +399,177 @@ $Outcome=\beta_0+\beta_1 Male Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:
 
 $Outcome=\beta_0+\beta_1 Male Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:40-50\ +\beta_4Age:50+\beta_5Male +\beta_6(Male*MaleInstructorVideo)$
 
-```{r outcome1, echo=FALSE, include=FALSE}
-# Table 1: Primary Outcome: Average Rating
-model_1_1 <- lm(avg_rating ~ assignment, data=d)
-model_2_1 <- lm(avg_rating ~ assignment + as.factor(Age) + as.factor(Gender), data=d)
-model_3_1 <- lm(avg_rating ~ assignment+ as.factor(Age) + as.factor(Gender) +as.factor(Gender)*assignment, data=d)
+```{r outcome1,results='asis', echo=FALSE}
+# Table 1: Primary Outcome: Overall Instructor Effectiveness Rating
+model_1_1 <- lm(instr_rating ~ assignment, data=d)
+model_2_1 <- lm(instr_rating ~ assignment + as.factor(Age) + as.factor(Gender), data=d)
+model_3_1 <- lm(instr_rating ~ assignment+ as.factor(Age) + as.factor(Gender) +as.factor(Gender)*assignment, data=d)
 
 # Table 1
-stargazer(model_1_1,model_2_1, model_3_1,
-          type='html',title = 'Table 4: Primary Outcome Average Rating Models',
+stargazer(model_1_1,model_2_1, model_3_1,header=FALSE,column.sep.width = "3pt",font.size = "small",
+          type='latex',title = 'Primary Outcome Overall Effectiveness Rating Models',
           covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Baseline"),
-          dep.var.labels=c("Average Rating"),
+          dep.var.labels=c("Overall Instructor Effectiveness Rating"),
           column.labels=c("Simple","Blocks Included","Gender Interaction Terms"),
           se = list(get_robust_se(model_1_1),get_robust_se(model_2_1), get_robust_se(model_3_1)),
           #p = list(get_p_correction(model_1_1),get_p_correction(model_2_1), get_p_correction(model_3_1)),
           notes = 'Note: Uses Robust Standard Error',
-          report = ('vcs*p'),
-          add.lines = list(c("Gender Fixed Effects","No","Yes", "Yes"),
-                         c("Age Group Fixed Effects","No","Yes", "Yes")),
-          out='models1.htm')
+          report = ('vcs*p'))
+
+```
+```{r,echo=FALSE}
+# F-tests to see if longer models perform better than the shorter models
+a11_21 <- anova(model_2_1, model_1_1, test='F') # block covariates do not improve performance of model 0.37
+a11_31 <- anova(model_3_1,model_1_1, test = 'F')# block covariates and interaction terms do not improve performance of model 0.51
+```
+```{r ci1, echo=FALSE}
+
+ci_1_1_95 <- confint(model_1_1 , level=.95)
+ci_1_1_99 <- confint(model_1_1 , level=.99)
+print(ci_1_1_95)
+print(ci_1_1_99)
+
+ci_2_1_95 <- confint(model_2_1 , level=.95)
+ci_2_1_99 <- confint(model_2_1 , level=.99)
+print(ci_2_1_95)
+print(ci_2_1_99)
+
+ci_3_1_95 <- confint(model_3_1 , level=.95)
+ci_3_1_99 <- confint(model_3_1 , level=.99)
+print(ci_3_1_95)
+print(ci_3_1_99)
 
 ```
 
 ```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
-screenshot <- webshot("models1.htm", "models1.png", cliprect = "viewport")
-knitr::include_graphics("models1.png")
+#screenshot <- webshot("models1.htm", "models1.png", cliprect = "viewport")
+#knitr::include_graphics("models1.png")
 ```
 
-```{r outcome2, echo=FALSE, include=FALSE}
-# Table 2: Primary Outcome: Instructor Rating
-model_1_2 <- lm(instr_rating ~ assignment, data=d)
-model_2_2 <- lm(instr_rating ~ assignment + as.factor(Age) + as.factor(Gender), data=d)
-model_3_2 <- lm(instr_rating ~ assignment+ as.factor(Age) + as.factor(Gender) +as.factor(Gender)*assignment, data=d)
+```{r outcome2,results='asis', echo=FALSE}
+# Table 2: Primary Outcome: Instructor Professional Rating
+model_1_2 <- lm(instr_professional ~ assignment, data=d)
+model_2_2 <- lm(instr_professional ~ assignment + as.factor(Age) + as.factor(Gender), data=d)
+model_3_2 <- lm(instr_professional ~ assignment+ as.factor(Age) + as.factor(Gender) +as.factor(Gender)*assignment, data=d)
 
 # Table 2
-stargazer(model_1_2,model_2_2, model_3_2,
-          type='html',title = 'Table 5: Primary Outcome Instructor Rating Models',
+stargazer(model_1_2,model_2_2, model_3_2,header=FALSE,column.sep.width = "3pt",font.size = "small",
+          type='latex',title = 'Primary Outcome Instructor Professional Rating Models',
           covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Baseline"),
-          dep.var.labels=c("Instructor Rating"),
+          dep.var.labels=c("Instructor Professional Rating"),
           column.labels=c("Simple","Blocks Included","Gender Interaction Terms"),
           se = list(get_robust_se(model_1_2),get_robust_se(model_2_2), get_robust_se(model_3_2)),
           #p = list(get_p_correction(model_1_2),get_p_correction(model_2_2), get_p_correction(model_3_2)),
           notes = 'Note: Uses Robust Standard Error',
-          report = ('vcs*p'),
-          add.lines = list(c("Gender Fixed Effects","No","Yes", "Yes"),
-                         c("Age Group Fixed Effects","No","Yes", "Yes")),
-          out='models2.htm')
+          report = ('vcs*p'))
 ```
+```{r ci2, echo=FALSE}
+ci_1_2_95 <- confint(model_1_2 , level=.95)
+ci_1_2_99 <- confint(model_1_2 , level=.99)
+print(ci_1_2_95)
+print(ci_1_2_99)
+
+ci_2_2_95 <- confint(model_2_2 , level=.95)
+ci_2_2_99 <- confint(model_2_2 , level=.99)
+print(ci_2_2_95)
+print(ci_2_2_99)
+
+ci_3_2_95 <- confint(model_3_2 , level=.95)
+ci_3_2_99 <- confint(model_3_2 , level=.99)
+print(ci_3_2_95)
+print(ci_3_2_99)
+
+```
+
+```{r,echo=FALSE}
+# F-tests to see if longer models perform better than the shorter models
+a12_22 <- anova(model_2_2, model_1_2, test='F') # block covariates do not improve performance of model 0.36
+a12_32 <- anova(model_3_2,model_1_2, test = 'F')# block covariates and interaction terms do not improve performance of model  0.49
+
+```
+
 
 ```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
-screenshot <- webshot("models2.htm", "models2.png", cliprect = "viewport")
-knitr::include_graphics("models2.png")
+#screenshot <- webshot("models2.htm", "models2.png", cliprect = "viewport")
+#knitr::include_graphics("models2.png")
 ```
 
-```{r outcome3, echo=FALSE, include=FALSE}
-# Table 3: Primary Outcome: Instructor Subject Rating
+```{r outcome3,results='asis', echo=FALSE}
+# Table 3: Primary Outcome: Instructor Knowledge Rating
 
 model_1_3 <- lm(instr_subject ~ assignment, data=d)
 model_2_3 <- lm(instr_subject ~ assignment + as.factor(Age) + as.factor(Gender), data=d)
 model_3_3 <- lm(instr_subject ~ assignment+ as.factor(Age) + as.factor(Gender)+as.factor(Gender)*assignment, data=d)
 
 # Table 3
-stargazer(model_1_3,model_2_3, model_3_3,
-          type='html',title = 'Table 6: Primary Outcome Instructor Subject Rating Models',
+stargazer(model_1_3,model_2_3, model_3_3,header=FALSE,column.sep.width = "3pt",font.size = "small",
+          type='latex',title = 'Primary Outcome Knowledge Rating Models',
           covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Baseline"),
-          dep.var.labels=c("Subject Rating"),
+          dep.var.labels=c("Instructor Knowledge Rating"),
           column.labels=c("Simple","Blocks Included","Gender Interaction Terms"),
           se = list(get_robust_se(model_1_3),get_robust_se(model_2_3), get_robust_se(model_3_3)),
           #p = list(get_p_correction(model_1_3),get_p_correction(model_2_3), get_p_correction(model_3_3)),
           notes = 'Note: Uses Robust Standard Error',
-          report = ('vcs*p'),
-          add.lines = list(c("Gender Fixed Effects","No","Yes", "Yes"),
-                         c("Age Group Fixed Effects","No","Yes", "Yes")),
-          out='models3.htm')
+          report = ('vcs*p'))
+```
+
+```{r,echo=FALSE}
+a13_23 <- anova(model_2_3, model_1_3, test='F') # block covariates do not improve performance of model 0.38
+a13_33 <- anova(model_3_3,model_1_3, test = 'F')# block covariates and interaction terms do not improve performance of model 0.48
 ```
 
 ```{r, echo=FALSE, out.height="90%", out.width="100%", fig.align="center"}
-screenshot <- webshot("models3.htm", "models3.png", cliprect = "viewport")
-knitr::include_graphics("models3.png")
+#screenshot <- webshot("models3.htm", "models3.png", cliprect = "viewport")
+#knitr::include_graphics("models3.png")
 ```
 
-```{r outcome4, echo=FALSE, include=FALSE}
-# Table 4: Primary Outcome: Instructor Material Rating
+```{r outcome4,results='asis', echo=FALSE}
+# Table 4: Primary Outcome: Instructor Clarity Rating
 
 model_1_4 <- lm(instr_material ~ assignment, data=d)
 model_2_4 <- lm(instr_material ~ assignment+ as.factor(Age) + as.factor(Gender), data=d)
 model_3_4 <- lm(instr_material ~ assignment+ as.factor(Age) + as.factor(Gender)+as.factor(Gender)*assignment, data=d)
 
 # Table 4
-stargazer(model_1_4,model_2_4, model_3_4,
-          type='html',title = 'Table 7: Primary Outcome Instructor Material Rating Models',
+stargazer(model_1_4,model_2_4, model_3_4,header=FALSE,column.sep.width = "3pt",font.size = "small",
+          type='latex',title = 'Primary Outcome Instructor Clarity Rating Models',
           covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Baseline"),
-          dep.var.labels=c("Material Rating"),
+          dep.var.labels=c("Instructor Clarity Rating"),
           column.labels=c("Simple","Blocks Included","Gender Interaction Terms"),
           se = list(get_robust_se(model_1_4),get_robust_se(model_2_4), get_robust_se(model_3_4)),
           #p = list(get_p_correction(model_1_4),get_p_correction(model_2_4), get_p_correction(model_3_4)),
           notes = 'Note: Uses Robust Standard Error',
-          report = ('vcs*p'),
-          add.lines = list(c("Gender Fixed Effects","No","Yes", "Yes"),
-                         c("Age Group Fixed Effects","No","Yes", "Yes")),
-          out='models4.htm')
+          report = ('vcs*p'))
 ```
 
+```{r,echo=FALSE}
+a14_24 <- anova(model_2_4, model_1_4, test='F') # block covariates do not improve performance of model 0.58
+a14_34 <- anova(model_3_4,model_1_4, test = 'F')# block covariates and interaction terms do not improve performance of model 0.45
+```
+
+```{r ci4, echo=FALSE}
+ci_1_4_95 <- confint(model_1_4 , level=.95)
+ci_1_4_99 <- confint(model_1_4 , level=.99)
+print(ci_1_4_95)
+print(ci_1_4_99)
+
+ci_2_4_95 <- confint(model_2_4 , level=.95)
+ci_2_4_99 <- confint(model_2_4 , level=.99)
+print(ci_2_4_95)
+print(ci_2_4_99)
+
+ci_3_4_95 <- confint(model_3_4 , level=.95)
+ci_3_4_99 <- confint(model_3_4 , level=.99)
+print(ci_3_4_95)
+print(ci_3_4_99)
+
+```
 ```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
-screenshot <- webshot("models4.htm", "models4.png", cliprect = "viewport")
-knitr::include_graphics("models4.png")
+#screenshot <- webshot("models4.htm", "models4.png", cliprect = "viewport")
+#knitr::include_graphics("models4.png")
 ```
 
-```{r outcome5, echo=FALSE, include=FALSE}
+```{r outcome5,results='asis', echo=FALSE}
 # Table 5: Primary Outcome: Instructor Enthusiasm Rating
 model_1_5 <- lm(instr_enthusiasm  ~ assignment, data=d)
 model_2_5 <- lm(instr_enthusiasm ~ assignment + as.factor(Age) + as.factor(Gender) , data=d)
@@ -513,24 +578,44 @@ model_3_5 <- lm(instr_enthusiasm ~ assignment+as.factor(Age) + as.factor(Gender)
 
 
 # Table 5
-stargazer(model_1_5,model_2_5, model_3_5,
-          type='html',title = 'Table 8: Primary Outcome Instructor Enthusiasm Rating Models',
+stargazer(model_1_5,model_2_5, model_3_5, header=FALSE,column.sep.width = "3pt",font.size = "small",
+           type='latex',title = 'Primary Outcome Instructor Enthusiasm Rating Models',
           covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Baseline"),
           dep.var.labels=c("Enthusiasm Rating"),
           column.labels=c("Simple","Blocks Included","Gender Interaction Terms"),
           se = list(get_robust_se(model_1_5),get_robust_se(model_2_5), get_robust_se(model_3_5)),
           #p = list(get_p_correction(model_1_5),get_p_correction(model_2_5), get_p_correction(model_3_5)),
-          report = ('vcs*p'),
-          notes = 'Note: Uses Robust Standard Error',
-          add.lines = list(c("Gender Fixed Effects","No","Yes", "Yes"),
-                         c("Age Group Fixed Effects","No","Yes", "Yes")),
-          out='models5.htm')
+          report = ('vcs*p'))
 ```
 
 ```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
-screenshot <- webshot("models5.htm", "models5.png", cliprect = "viewport")
-knitr::include_graphics("models5.png")
+#screenshot <- webshot("models5.htm", "models5.png", cliprect = "viewport")
+#knitr::include_graphics("models5.png")
 ```
+
+```{r,echo=FALSE}
+a15_25 <- anova(model_2_5, model_1_5, test='F') # additional block covariates improves performance of model 0.014 *
+a25_35 <- anova(model_3_5,model_2_5, test = 'F')# block covariates and interaction terms do not improve performance of model  0.72
+```
+
+```{r ci5, echo=FALSE}
+ci_1_5_95 <- confint(model_1_5 , level=.95)
+ci_1_5_99 <- confint(model_1_5 , level=.99)
+print(ci_1_5_95)
+print(ci_1_5_99)
+
+ci_2_5_95 <- confint(model_2_5 , level=.95)
+ci_2_5_99 <- confint(model_2_5 , level=.99)
+print(ci_2_5_95)
+print(ci_2_5_99)
+
+ci_3_5_95 <- confint(model_3_5 , level=.95)
+ci_3_5_99 <- confint(model_3_5 , level=.99)
+print(ci_3_5_95)
+print(ci_3_5_99)
+
+```
+
 
 $Outcome=\beta_0+\beta_1 Male Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:40-50\ +\beta_4Age:50+\beta_5Male$
 
@@ -540,7 +625,7 @@ $Outcome=\beta_0+\beta_1 Male Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:
 
 
 
-```{r quiz , echo=FALSE, include=FALSE}
+```{r quiz ,results='asis', echo=FALSE}
 
 # Table 6:
 
@@ -551,24 +636,43 @@ model_3_6 <- lm(quiz_avg ~ assignment + as.factor(Age) + as.factor(Gender) +as.f
 
 
 # Table 6
-stargazer(model_1_6,model_2_6, model_3_6,
-          type='html',title = 'Table 9: Secondary Outcome Quiz Score Models',
+stargazer(model_1_6,model_2_6, model_3_6, header=FALSE,column.sep.width = "3pt",font.size = "small",
+          type='latex',title = 'Secondary Outcome Quiz Score Models',
           covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Baseline"),
           dep.var.labels=c("Quiz Score"),
           column.labels=c("Simple","Blocks Included","Gender Interaction Terms"),
           se = list(get_robust_se(model_1_6),get_robust_se(model_2_6), get_robust_se(model_3_6)),
           #p = list(get_p_correction(model_1_6),get_p_correction(model_2_6), get_p_correction(model_3_6)),
           report = ('vcs*p'),
-          notes = 'Note: Uses Robust Standard Error',
-          add.lines = list(c("Gender Fixed Effects","No","Yes", "Yes"),
-                         c("Age Group Fixed Effects","No","Yes", "Yes")),
-          out='models6.htm')
+          notes = 'Note: Uses Robust Standard Error')
 ```
 
 ```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
-screenshot <- webshot("models6.htm", "models6.png", cliprect = "viewport")
-knitr::include_graphics("models6.png")
+#screenshot <- webshot("models6.htm", "models6.png", cliprect = "viewport")
+#knitr::include_graphics("models6.png")
 ```
+
+```{r,echo=FALSE}
+a16_26 <- anova(model_2_6, model_1_6, test='F') # block covariates improves performance of model 0.038 
+a26_36 <- anova(model_3_6,model_2_6, test = 'F')# block covariates and interaction terms do not improve performance of model 0.85
+```
+
+```{r ci6, echo=FALSE}
+ci_1_6_95 <- confint(model_1_6 , level=.95)
+ci_1_6_99 <- confint(model_1_6 , level=.99)
+print(ci_1_6_95)
+print(ci_1_6_99)
+
+ci_2_6_95 <- confint(model_2_6 , level=.95)
+ci_2_6_99 <- confint(model_2_6 , level=.99)
+print(ci_2_6_95)
+print(ci_2_6_99)
+
+ci_3_6_95 <- confint(model_3_6 , level=.95)
+ci_3_6_99 <- confint(model_3_6 , level=.99)
+print(ci_3_6_95)
+print(ci_3_6_99)
+
 ```
 
 ## Analysis
