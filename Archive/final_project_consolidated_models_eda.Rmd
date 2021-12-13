@@ -1,0 +1,386 @@
+---
+title: "Final 241 Project Consolidation"
+output:
+  pdf_document: default
+  html_document: default
+---
+author: Elizabeth Khan, Estrella Ndrianasy, Chandni Shah, Michelle Shen, Catherine
+  Tsai
+date: "November 8, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(magrittr)
+library(ggplot2)
+library(sandwich)
+library(lmtest)
+library(stargazer)
+library(stringr)
+library(tidyverse)
+library(gtsummary)
+library(vtable)
+library(cobalt)
+library(qwraps2)
+#library(xtables)
+library(writexl)
+
+theme_set(theme_minimal())
+options(tinytex.verbose = TRUE)
+options(warn=-1)
+```
+
+
+
+
+```{r survey}
+# Import data and remove invalid age 
+
+d <- fread("survey_cleaned_with_states.csv")
+
+d <- d[Age!='Other']
+
+# Removing company test response 52.36
+d <- d[ResponseId!='R_2WC5vlB2DCvHHrH']
+
+degrees = c("Bachelors degree","Associates degree","Masters degree")
+
+# create column to indicate whether or not subject has a college degree
+
+# d<- d[,college_degree:= ifelse(Education %in% degrees, 1,0)]
+
+head(d)
+
+```
+```{r}
+cols = c('Gender','Age','Education','assignment')
+d2 <- d[,..cols]
+sumtable(d2, group='assignment',group.test=TRUE,out="kable")
+```
+
+## Figures and Tables
+
+```{r initial data grouping}
+summary_response_table <- d %>%
+  count(Gender, Age, assignment)
+
+summary_response_table
+```
+
+```{r plots, echo=FALSE}
+d %>%
+  select(Gender, assignment, Age) %>%
+  tbl_summary(by = Gender) %>%
+  add_overall()
+```
+
+```{r}
+d %>%
+  select(Gender, Education, assignment) %>%
+  tbl_summary(by = assignment) %>%
+  add_overall()
+```
+
+```{r instr_enthusiam treatment v. control}
+
+response_hist <- d %>%
+  ggplot() +
+  aes(x = instr_rating, color=assignment) +
+  geom_histogram(alpha = 0.5, bins=5) +
+  labs(
+    title  = 'Instructor Overall Rating by Treatment and Control',
+    x      = 'Instructor Overall Rating',
+    y      = 'Number of Responses'
+  ) +
+  theme_light() +
+  facet_wrap(~ assignment)
+
+response_hist
+
+
+```
+
+```{r}
+
+ggplot(d, aes(x=assignment, y=avg_rating, fill=assignment))+
+  geom_boxplot()+
+  labs(title="Bar Chart of Treatment Assignment versus Average Instructor Rating",
+        x ="Treatment Assignment", y = "Average Instructor Rating")
+```
+
+
+```{r, fig.width=8, fig.height=4}
+col_plot = c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating")
+cols = c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating","assignment","Gender")
+d3 = d[,..cols]
+dlong <- pivot_longer(d3, cols=col_plot, names_to = "Outcome", values_to = "Rating")
+dlong
+
+ggplot(dlong, aes(x=Outcome, y=Rating, fill=assignment))+
+  geom_boxplot()+
+  labs(title="Overall Instructor Ratings by Treatment Assignment",
+        x ="Instructor Rating Type", y = "Rating (1-5)")+theme(axis.text.x = element_text(angle = 0))+
+   scale_x_discrete(breaks=c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating"),
+        labels=c("Enthusiasm","Professional","Subject", "Material","Instructor","Average Score"))
+
+```
+
+```{r}
+
+d$quiz_grade <- as.factor(d$quiz_avg*100)
+ggplot(d, aes(x=quiz_grade))+
+geom_bar(aes(y = (..count..)),fill="lightblue")+
+labs(title="Distribution of Retention Quiz Scores",
+        x ="Retention Quiz Score", y = "Count")
+
+```
+
+
+## Randomness Check
+
+In this section, we verify if the block randomization was successful; there should be no increase in predicting whether or not someone is in the treatment or control group based on their blocks.
+
+```{r}
+null_model <- lm(assigned~1,data=d)
+full_model <- lm(assigned ~ 1 + as.factor(Age)+as.factor(Gender), data=d)
+f_test <- anova(full_model, null_model, test ='F')
+f_test
+```
+```{r covariate balance check}
+covs <- c('Age','Gender','Education', 'assignment','avg_rating')
+subset <- d[,..covs]
+
+head(subset)
+options(qwraps2_markup = 'markdown')
+covariate_summary <-
+  list("Gender" =
+       list("Male"      = ~ qwraps2::n_perc(Gender == 'Male'),
+            "Female"    = ~ qwraps2::n_perc(Gender == 'Female')),
+      "Age" =
+       list("20-30" = ~ qwraps2::n_perc(Age == '20-30'),
+            "30-40"  = ~ qwraps2::n_perc(Age == '30-40'),
+            "40-50"  = ~ qwraps2::n_perc(Age == '40-50'),
+            "50+" = ~ qwraps2::n_perc(Age == '50+')),
+       "Education" =
+       list("Less than High school" = ~ qwraps2::n_perc(Education == 'Less than High school'),
+            "High school diploma"  = ~ qwraps2::n_perc(Education == 'High school diploma'),
+            "Some College No degree"  = ~ qwraps2::n_perc(Education == 'Some College No degree'),
+            "Associates degree"  = ~ qwraps2::n_perc(Education == 'Associates degree'),
+            "Bachelors degree"  = ~ qwraps2::n_perc(Education == 'Bachelors degree'),
+            "Masters degree"  = ~ qwraps2::n_perc(Education == 'Masters degree'))
+       )
+
+table <- summary_table(subset, covariate_summary, by = c("assignment"))
+
+
+
+```
+```{r}
+unique(d$Education)
+```
+```{r}
+ages <- unique(d[,Age])
+p_values_ages <- data.table(Age = character(), mean_rating_control = numeric(), mean_rating_treatment = numeric(), p_value=numeric())
+
+
+ 
+for(age in ages)
+  
+{ print(age)
+  
+treatment_avg = round(mean(d[(assignment=='Treatment'),as.integer(ifelse((Age==age),1,0))]),2)
+control_avg = round(mean(d[(assignment=='Control'),as.integer(ifelse((Age==age),1,0))]),2)
+p_val =round(t.test(d[(assignment=='Treatment'),as.integer(ifelse((Age==age),1,0))], d[(assignment=='Control'),as.integer(ifelse((Age==age),1,0))], conf.level = 0.95)$p.value,3)
+table1 <-data.table(Age=age,mean_rating_control = control_avg, mean_rating_treatment = treatment_avg, p_value=p_val)
+p_values_ages<-rbind(p_values_ages, table1)
+}
+
+p_values_ages <- unique(p_values_ages)
+
+
+```
+```{r}
+t.test(d[(Age==age)&(assignment=='Treatment'),instr_rating], d[(Age==age)&(assignment=='Control'),instr_rating], conf.level = 0.95)
+
+print(age)
+```
+
+```{r}
+
+genders <- unique(d[,Gender])
+p_values_genders<- data.table(Gender = character(), mean_rating_control = numeric(), mean_rating_treatment = numeric(), p_value=numeric())
+
+
+ 
+for(gender in genders)
+  
+{ print(gender)
+treatment_avg =round(mean(d[(assignment=='Treatment'),as.integer(ifelse((Gender==gender),1,0))]),2)
+control_avg =round(mean(d[(assignment=='Control'),as.integer(ifelse((Gender==gender),1,0))]),2)
+p_val =round(t.test(d[(assignment=='Treatment'),as.integer(ifelse((Gender==gender),1,0))], d[(assignment=='Control'),as.integer(ifelse((Gender==gender),1,0))], conf.level = 0.95)$p.value,3)
+table1 <-data.table(Gender=gender,mean_rating_control = control_avg, mean_rating_treatment = treatment_avg, p_value=p_val)
+p_values_genders<-rbind(p_values_genders, table1)
+}
+
+```
+
+
+
+```{r}
+educations <- unique(d[,Education])
+p_values_educations<- data.table(Education = character(), mean_rating_control = numeric(), mean_rating_treatment = numeric(), p_value=numeric())
+
+
+
+ 
+for(education in educations)
+  
+{ print(education)
+treatment_avg =round(mean(d[(assignment=='Treatment'),as.integer(ifelse((Education==education),1,0))]),2)
+control_avg =round(mean(d[(assignment=='Control'),as.integer(ifelse((Education==education),1,0))]),2)
+if (education!= 'Less than High school') {
+p_val =round(t.test(d[(assignment=='Treatment'),as.integer(ifelse((Education==education),1,0))], d[(assignment=='Control'),as.integer(ifelse((Education==education),1,0))], conf.level = 0.95)$p.value,3)}
+else {p_val = NA}
+table1 <-data.table(Education=education,mean_rating_control = control_avg, mean_rating_treatment = treatment_avg, p_value=p_val)
+p_values_educations<-rbind(p_values_educations, table1)
+}
+```
+```{r}
+p_values_all <- left_join(subset, p_values_ages, by="Age")
+p_values_all <- left_join(p_values_all, p_values_educations, by="Education")
+
+p_values_all <- left_join(p_values_all, p_values_genders, by="Gender")
+
+head(p_values_all)
+```
+
+
+
+```{r}
+
+options(qwraps2_frmtp_digits= 2)
+
+covariate_summary2<-
+  list("Gender" =
+       list("Male"      = ~ max(as.numeric(ifelse(Gender == 'Male',mean_rating_control,0))),
+            "Female"    = ~ max(as.numeric(ifelse(Gender == 'Female',mean_rating_control,0)))),
+       "Age" =
+       list("20-30" = ~ max(as.numeric(ifelse(Age == '20-30',mean_rating_control.x,0))),
+            "30-40"  = ~ max(as.numeric(ifelse(Age == '30-40',mean_rating_control.x,0))),
+            "40-50"  = ~ max(as.numeric(ifelse(Age == '40-50',mean_rating_control.x,0))),
+            "50+" = ~ max(as.numeric(ifelse(Age == '50+',mean_rating_control.x,0)))),
+       "Education" =
+       list("Less than High school" = ~ max(as.numeric(ifelse(Education == 'Less than High school',mean_rating_control.y,0))),
+            "High school diploma"  = ~ max(as.numeric(ifelse(Education == 'High school diploma',mean_rating_control.y,0))),
+            "Some College No degree"  = ~ max(as.numeric(ifelse(Education == 'Some College No degree',mean_rating_control.y,0))),
+            "Associates degree"  = ~ max(as.numeric(ifelse(Education == 'Associates degree',mean_rating_control.y,0))),
+            "Bachelors degree"  = ~ max(as.numeric(ifelse(Education == 'Bachelors degree',mean_rating_control.y,0))),
+            "Masters degree"  = ~ max(as.numeric(ifelse(Education == 'Masters degree',mean_rating_control.y,0))))
+       )
+
+table2<- summary_table(p_values_all , covariate_summary2)
+
+
+covariate_summary3<-
+  list("Gender" =
+       list("Male"      = ~ max(as.numeric(ifelse(Gender == 'Male',mean_rating_treatment,0))),
+            "Female"    = ~ max(as.numeric(ifelse(Gender == 'Female',mean_rating_treatment,0)))),
+       "Age" =
+       list("20-30" = ~ max(as.numeric(ifelse(Age == '20-30',mean_rating_treatment.x,0))),
+            "30-40"  = ~ max(as.numeric(ifelse(Age == '30-40',mean_rating_treatment.x,0))),
+            "40-50"  = ~ max(as.numeric(ifelse(Age == '40-50',mean_rating_treatment.x,0))),
+            "50+" = ~ max(as.numeric(ifelse(Age == '50+',mean_rating_treatment.x,0)))),
+       "Education" =
+       list("Less than High school" = ~ max(as.numeric(ifelse(Education == 'Less than High school',mean_rating_treatment.y,0))),
+            "High school diploma"  = ~ max(as.numeric(ifelse(Education == 'High school diploma',mean_rating_treatment.y,0))),
+            "Some College No degree"  = ~ max(as.numeric(ifelse(Education == 'Some College No degree',mean_rating_treatment.y,0))),
+            "Associates degree"  = ~ max(as.numeric(ifelse(Education == 'Associates degree',mean_rating_treatment.y,0))),
+            "Bachelors degree"  = ~ max(as.numeric(ifelse(Education == 'Bachelors degree',mean_rating_treatment.y,0))),
+            "Masters degree"  = ~ max(as.numeric(ifelse(Education == 'Masters degree',mean_rating_treatment.y,0))))
+       )
+
+table3<- summary_table(p_values_all , covariate_summary3)
+
+covariate_summary4<-
+  list("Gender" =
+       list("Male"      = ~ max(as.numeric(ifelse(Gender == 'Male',p_value,0))),
+            "Female"    = ~ max(as.numeric(ifelse(Gender == 'Female',p_value,0)))),
+       "Age" =
+       list("20-30" = ~ max(as.numeric(ifelse(Age == '20-30',p_value.x,0))),
+            "30-40"  = ~ max(as.numeric(ifelse(Age == '30-40',p_value.x,0))),
+            "40-50"  = ~ max(as.numeric(ifelse(Age == '40-50',p_value.x,0))),
+            "50+" = ~ max(as.numeric(ifelse(Age == '50+',p_value.x,0)))),
+       "Education" =
+       list("Less than High school" = ~ max(as.numeric(ifelse(Education == 'Less than High school',p_value.y,0))),
+            "High school diploma"  = ~ max(as.numeric(ifelse(Education == 'High school diploma',p_value.y,0))),
+            "Some College No degree"  = ~ max(as.numeric(ifelse(Education == 'Some College No degree',p_value.y,0))),
+            "Associates degree"  = ~ max(as.numeric(ifelse(Education == 'Associates degree',p_value.y,0))),
+            "Bachelors degree"  = ~ max(as.numeric(ifelse(Education == 'Bachelors degree',p_value.y,0))),
+            "Masters degree"  = ~ max(as.numeric(ifelse(Education == 'Masters degree',p_value.y,0))))
+       )
+
+options(digits=3)
+table4<- summary_table(p_values_all , covariate_summary4)
+final <-cbind(table, table2,table3,table4)
+print(final, cname = c("Control (N = 108)","Treatment (N = 113)", "Mean - Control", "Mean - Treatment", "t-test (Diff in Means)"),digits=3, caption="Figure 3: Covariate Balance Table")
+
+print(kable(final, col.names = c("Control (N = 108)","Treatment (N = 113)", "Mean - Control", "Mean - Treatment", "t-test (Diff in Means)"),caption = "An example table caption."))
+```
+
+
+```{r}
+# Table 1: Baseline models Outcome ~ Treatment
+model_1_1 <- lm(avg_rating ~ assignment, data=d)
+model_1_2 <- lm(instr_rating ~ assignment, data=d)
+model_1_3 <- lm(instr_subject ~ assignment, data=d)
+model_1_4 <- lm(instr_material ~ assignment, data=d)
+model_1_5 <- lm(instr_enthusiasm  ~ assignment, data=d)
+
+# Table 1
+stargazer(model_1_1,model_1_2, model_1_3, model_1_4, model_1_5, type='text')
+
+
+# Table 2: Outcome with Pre-treatment blocks (Age and Gender)
+model_2_1 <- lm(avg_rating ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_2_2 <- lm(instr_rating ~ as.factor(Age) + as.factor(Gender)+ assignment, data=d)
+model_2_3 <- lm(instr_subject ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_2_4 <- lm(instr_material ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_2_5 <- lm(instr_enthusiasm ~ as.factor(Age) + as.factor(Gender)+assignment , data=d)
+
+# Table 2
+stargazer(model_2_1,model_2_2, model_2_3, model_2_4, model_2_5, type='text')
+
+# Table 3: Outcome with Pre-treatment blocks (Age and Gender) and interaction term (gender*treatment)
+model_3_1 <- lm(avg_rating ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
+model_3_2 <- lm(instr_rating ~ as.factor(Age) + as.factor(Gender)+ assignment +as.factor(Gender)*assignment, data=d)
+model_3_3 <- lm(instr_subject ~ as.factor(Age) + as.factor(Gender)+assignment+as.factor(Gender)*assignment, data=d)
+model_3_4 <- lm(instr_material ~ as.factor(Age) + as.factor(Gender)+assignment+as.factor(Gender)*assignment, data=d)
+model_3_5 <- lm(instr_enthusiasm ~ as.factor(Age) + as.factor(Gender)+assignment+as.factor(Gender)*assignment, data=d)
+
+
+# Table 3
+stargazer(model_3_1,model_3_2, model_3_3, model_3_4, model_3_5, type='text')
+
+# Table 4:
+
+# base model 
+model_4_1 <- lm(quiz_avg~ assignment, data=d)
+model_4_2 <- lm(quiz_avg ~ as.factor(Age) + as.factor(Gender)+assignment, data=d)
+model_4_3 <- lm(quiz_avg ~ as.factor(Age) + as.factor(Gender)+assignment +as.factor(Gender)*assignment, data=d)
+
+
+#models with blocking across quiz averages
+stargazer(model_4_1, model_4_2,model_4_3, type = 'text')
+```
+
+
+
+
+
+
+
+
+
+

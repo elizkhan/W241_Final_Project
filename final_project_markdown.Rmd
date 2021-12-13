@@ -1,20 +1,28 @@
 ---
-title: "W241 Final Project Paper"
+title: "W241 Final Project: Assessing Gender Bias in Educational Videos"
 author: "Elizabeth Khan, Estrella Ndrianasy, Chandni Shah, Michelle Shen, Catherine
   Tsai"
 output:
   pdf_document:
     latex_engine: xelatex
     toc: true
+    fig_caption: yes
+    keep_tex: yes
   html_document:
     df_print: paged
+    fig.caption: yes
+    keep_tex: yes
+header-includes: \usepackage{float}
 ---
 
 
 \clearpage
 
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.pos = 'H')
 knitr::opts_chunk$set(echo = TRUE)
+# prevent floating objects
+
 library(data.table)
 library(magrittr)
 library(ggplot2)
@@ -55,9 +63,11 @@ get_p_correction <- function(model) {
 Female instructors face challenges with gender stereotypes that can impact their future earning potentials and career growth. Specifically for women in academia, numerous studies have demonstrated that students treat and evaluate female professors differently than male professors. Female professors are also often held to higher standards and subjected to a greater number of demands and requests from their students.[2] In this experiment, we seek to understand if gender bias alters students’ perception of an instructor’s quality of programming and technical instruction.
 
 
-## Research Question
+## Research Questions
 
-Does an instructor’s perceived gender influence the perceived quality of instruction?
+Primary Research Question: *Does an instructor’s perceived gender influence the perceived quality of instruction?*
+
+Secondary Research Question: *Does an instructor’s perceived gender influence retention of content?*
 
 ## Hypothesis
 
@@ -108,26 +118,71 @@ power_test_t <- function(
 
 power = power_test_t(power_loops = 100)$power
 ```
+## Data
+To conduct the experiment, we explored subject recruiting companies in order to obtain a more generalizable pool of survey participants. The requirements outlined for recruiting companies included the ability to:
+
+* Administer Qualtrics survey to subjects
+* Record subject responses
+* Ensure sufficient sample size according to our power analysis (see Statistical Analysis Approach)
+* Enable blocked design
+* Include inclusion and exclusion criteria
+* Disqualify those who failed the attention check
+* Deliver responses to us in a timely manner
+
+The social science recruitment company we chose to work with, SurveySwap, was the best fit based on the criteria above. SurveySwap was used to identify subjects, deliver control and treatment surveys, and deliver subject responses.
+
 
 ## Experiment Design
 
-Our experiment featured a randomized, between-subjects design with a 2x4 blocked design on participants’ gender and age groups to ensure equal treatment distribution among each of the blocked populations. The sample design consisted of 112 participants equally split between males (n = 56) and females (n = 56). Prior to conducting the experiment, a statistical power test was completed to understand if having a sample size of at least 112 participants (56 subjects in the treatment and control groups) would be sufficient to observe the treatment effect (if indeed there is one). The treatment effect in this simulation was estimated from the average outcome from the Gender Bias in Student Evaluations Study by Kristina Mitchell and Johnathan Martin. The statistical power test demonstrated that `r round(power*100,0)`% of all potential random assignments will reject the null hypothesis if indeed there is a treatment effect. Therefore, this suggests that a sample size of at least 112 is enough to detect the treatment effect.
+Our experiment featured a randomized, between-subjects design with a 2x4 blocked design on the gender and age groups of participants so as to ensure equal treatment distribution among each of the blocked populations. The sample design consisted of 112 participants equally split between self-identified males (n = 56) and females (n = 56) survey participants.
+
+The control group consisted of subjects who visualized  a Python instructional video voiced using a male voiceover. The treatment group were subjects who watched the exact same video voiced using a female instead of a male voiceover. To further mitigate potential instructor-level attributes that may influence instructor evaluations, subjects in the treatment and control groups were randomly assigned to one of three possible instructors. Specifically, there were six different recordings of the same video with the same script in the experiment: three different male recordings within the control group, and three different female ones in the treatment group. 
+
+Subjects were sorted into blocks (Table 1) and then randomized into surveys utilizing Qualtrics’s survey logic functions. The ***primary outcome*** variables were: 
+
+* __Enthusiasm__: rating of the instructor’s enthusiasm
+* __Knowledge__: rating of the instructor’s knowledge
+* __Clarity__: rating on how clearly respondents felt the instructor explained the material
+* __Professionalism__: evaluating the instructor’s professionalism
+* __Overall Effectiveness__: rating of the overall effectiveness of the instructor’s teaching 
+
+Primary outcome variable questions were administered as questions using a 5-point Likert scale. A secondary outcome variable was **quiz score** measured on the correctness of answers to several content retention questions. The inclusion and exclusion criteria requirements detailed below were stipulated to allow researchers to capture treatment effects for adults in the United States. 
+
+**Inclusion criteria:** To qualify for the survey, subjects must be located in the United States and identify as a native English speaker. 
+
+**Exclusion criteria:** Subjects less than 20 years of age were excluded from the study.
 
 
-## Methods
+```{r experimental design, echo=FALSE, out.height="90%", out.width="90%", fig.align="center"}
+knitr::include_graphics('images/ExperimentalDesign.png')
+```
 
-A video featuring a Python programming informational slideshow was created. Three (3) men and three women volunteers recorded voice overs narrating the video using the same script. Volunteers were given timestamps to standardize pacing of the 6 resulting videos. Neither videos nor images of volunteers were incorporated into the final videos. 
-A questionnaire containing thirteen (13) survey questions (see Appendix A) was generated to collect information on two main outcomes. First, the subject is asked five (5) primary outcome questions to collect information on how a subject perceived their instructor from the video. Primary outcome questions use a 5-point Likert Scale for subjects to rate the quality of the instructor’s performance in categories such as overall instructor effectiveness, competence/knowledge in subject matter, instructor enthusiasm and professionalism. One (1) attention check question is administered at this time. Next, the subject is asked four (4) secondary objective outcome questions to test video content retention among respondents. Questions are presented in multiple-choice format with one correct response. Lastly, relevant demographic information from each subject is collected with three (3) final questions.
+## Statistical Power
 
-Six Qualtrics surveys were generated. Each Qualtrics survey contained only one of the six videos with either a male or a female voice over, followed by the questionnaire. A 10 second timer was added to each page of the survey.
+Prior to conducting the experiment, a statistical power test was completed to evaluate whether a sample size of at least 112 participants, evenly split between treatment and control, would be sufficient to observe the treatment effect. It was estimated from the average outcome from the Gender Bias in Student Evaluations Study by Kristina Mitchell and Johnathan Martin [3]. The test showed `r round(power*100,0)`% of all potential random assignments would effectively reject the null hypothesis in the presence of a treatment effect. Therefore, a sample size of at least 112 is presumed sufficient.
 
-## Recruitment Process
+## Potential Outcomes and Reasoning About Mechanisms
 
-A social science subject-recruiting company called Survey Swap was used to identify subjects, administer the Qualtrics video and survey, and record subject responses. To qualify for the survey, we stipulated subjects must be located in the United States, be over the age of 20, and identify as a native English speaker. The goal of this criteria requirement was to allow us to capture treatment effects for adults in the United States. Subjects who qualified for the survey were randomly redirected to one of the six Qualtrics surveys, where they were asked to view the video. After viewing the video, subjects were asked to fill out the survey questions. Survey responses from only subjects that correctly answered the attention check question responses were recorded. 
+To understand the causal effect of the treatment we used the Potential Outcomes framework in order to estimate the Average Treatment Effect (ATE). For the purposes of this study we compared two potential outcomes 1) $Y_i(1)$ which is the observed outcome (instructor rating) when the subject watches the video with a female instructor and 2) $Y_i(0)$ the observed outcome (instructor rating) when the subject watches the video with a male instructor. 
 
-We defined the control group as consisting of subjects who watched an instructional video voiced using a male voiceover and the treatment group as consisting of subjects who were treated with the same video voiced using a female instead of a male voiceover. To control for cadence, pitch, tone, and other characteristics that vary among both men’s and women’s voices, we used a total of six voiceovers from three men and three women.
+The delivered treatment ($d_i=1$) of changing instructor gender to female is used as a means to quantify the differences in perception between male and female instructors. The videos would allow the students to infer the perceived genders of the instructors along with the style and assumed content mastery. Because male instructed videos will be used as a control, it can be used to establish a baseline of instructor perception. The perception by the treatment group watching videos led by a female instructor might deviate from that baseline. If there are significant differences between the control and treatment group, holding the content of the material and everything else except gender constant, then we can attribute that the gender of the instructor leads to differences between the control and treatment outcomes .
 
-## Data Preperation
+
+## Statistical Analysis Approach
+
+The Average Treatment Effect (ATE) of receiving the Male Instructor Video on the outcome will be estimated using Linear Regression models. Specifically, the experiment analyzed five (5) primary outcomes and one secondary outcome.
+
+**Model 1**: The simple model estimates the ATE of the receiving the treatment (Female Instructor Video) as compared to the control group (Male Instructor Video).
+
+$Outcome=\beta_0+\beta_1 Female Instructor Video$
+
+**Model 2**: The second model includes blocks for subject Age and Gender. We theorized the potential outcomes would be similar for the Gender and Age group. Additionally, this model enables the comparison of the ATE among the male group, the ATE among the female group, and the ATE for various Age Groups of respondents.
+
+$Outcome=\beta_0+\beta_1 Female Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:40-50\ +\beta_4Age:50+\beta_5Male$
+
+**Model 3**: The third model includes interaction terms for Gender and Treatment (Female Instructor Video) in addition to the block covariates because there is reason to suspect that Gender may have an additional effect on the receiving the treatment. Specifically, males may evaluate female instructors lower than male instructors because of gender bias.
+
+$Outcome=\beta_0+\beta_1 Female Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:40-50\ +\beta_4Age:50+\beta_5Male +\beta_6(Male*FemaleInstructorVideo)$
 
 ```{r survey, echo=FALSE}
 # Import data and remove invalid age 
@@ -147,16 +202,28 @@ degrees = c("Bachelors degree","Associates degree","Masters degree")
 
 ```
 
-```{r, echo=FALSE, include=FALSE}
-#d <- fread("survey_cleaned_with_states.csv")
-#d <- d[ResponseId!='R_2WC5vlB2DCvHHrH']
-#dropped <- d[Age=='Other']
+## Methodology
 
-d
+### Survey Development
+
+A video featuring a Python programming informational slideshow was created. To control for cadence, pitch, tone, and other characteristics that vary among both men’s and women’s voices, a total of six voiceovers from three (3) male and three female (3) volunteers were recorded to narrate the same video. Volunteers used the same script and were given timestamps to standardize the pacing of the six (6) resulting videos. Neither videos nor images of volunteers were incorporated into the final videos. Namely, no identifiable information on the volunteers was made available to the survey participants.
+
+A questionnaire containing thirteen (13) survey questions (see Appendix A) was generated to collect information on two main outcomes. First, the subject was asked three (3) demographics questions about the subject’s gender, age group, and highest level of education. Next, five (5) primary outcome questions to collect information on instructor perception from the video. Primary outcome questions use a 5-point Likert Scale for subjects to rate the quality of the instructor’s performance. One (1) attention check question was administered at this time. Next, the subject is asked four (4) secondary objective outcome questions to test video content retention among respondents. Questions were presented in multiple-choice format with one correct response.
+
+Six Qualtrics surveys were generated. Each Qualtrics survey contained only one of the six videos with either a male or a female voiceover, followed by the questionnaire. A 10 second timer was added to each page of the survey.
+
+### Treatment Adminstration
+
+SurveySwap recruited subjects based on established blocks for gender and age group (Figure 1). After answering demographic questions, subjects were randomized to one of the six surveys in accordance with blocking per the experimental design. Within the survey, subjects were asked to view a video and fill out survey questions. Only the survey responses from subjects that correctly answered the attention check question were recorded.
+
+## Survey Outcomes
+
+```{r constort, echo=FALSE, out.height="90%", out.width="90%", fig.align="center"}
+knitr::include_graphics('images/consort.png')
 ```
 ## Subject Demographics
 
-Data from 222 total subjects was received from Survey Swap. Of those subjects, 49% were assigned to the control group and 51% were assigned to the treatment group. In the tables below you can observe the full summary of subjects within each gender and age block, along with education level.
+SurveySwap provided data from 223 total subjects (see Table 1). Of those subjects, 49% were assigned to the control group and 51% were assigned to the treatment group. Our findings show that 63% of respondents only achieved a high school degree or some college (see Table 2). A majority of respondents (64%) were also self identified as female. This education and gender imbalance was highlighted as survey results and potential interpretation may be impacted (see Table 2). The following tables show the full summary of subjects within each gender and age block, along with educational attainment.
 
 ```{r table1_2, echo=FALSE, message=FALSE}
  
@@ -187,18 +254,17 @@ null_model <-lm(assigned~1, data=d)
 full_model <- lm(assigned~1 +as.factor(Age)+as.factor(Gender), data=d)
 
 f_test <-anova(full_model, null_model, test='F')
-# f_test$`Pr(>F)`[2]
+#f_test$`Pr(>F)`[2]
 ```
 
 
-## Randomization
+## Confirmation of Randomization and Covariate Balancing
 
-While blocked randomization was completed through the distribution of surveys by Survey Swap, we conducted our own randomization check upon receiving the data. To conduct this check, we utilized an F-Test in R to test if subjects were equally assigned to the control and treatment group based on their age and gender blocks. The p-value for this test was not statistically significant at 0.795 and therefore we fail to reject the null hypothesis.  The results of our test suggest covariate balance within each block and that the blocks were successfully randomized.
+An F-test was conducted in R to evaluate whether the subjects were randomly assigned to the control and treatment group based on age and gender blocks. We fail to reject the null hypothesis with a non-statistically significant p-value of 0.795. Moreover, the F-test results indicate there is no evidence supporting the addition of block covariates would increase the accuracy of predicting treatment exposure, and that the blocks were successfully randomized.
 
+### Pre-Treatment Covariates
 
-## Pre-Treatment Covariates
-
-We hypothesized gender, age, and level of education of subjects may influence the outcome measure. To account for these covariates, a covariate balance check was conducted to evaluate if the distributions of the covariates were similar between the treatment and control groups. Findings suggested there is no imbalance between pre-treatment covariates, as none of the p-values were statistically significant.
+We hypothesized gender, age, and level of education of subjects may influence the outcomes measured. A separate covariate balance check was conducted to evaluate the differences in means between the treatment and control groups for the pretreatment characteristics. We subsequently found no imbalance between pre-treatment covariates, as none of the p-values were statistically significant.
 
 ```{r covariate balance check, include=FALSE}
 covs <- c('Age','Gender','Education', 'assignment','avg_rating')
@@ -353,10 +419,12 @@ final <-cbind(table, table2,table3,table4)
 print(final, cname = c("Control (N = 108)","Treatment (N = 113)", "Mean - Control", "Mean - Treatment", "t-test (p-value)"),digits=3, caption="Covariate Balance Test")
 
 ```
-## Results
+## Empirical Data
 
-While data from only 112 subjects was requested, Survey Swap provided responses from 222 total subjects who passed the attention check.
-Our analysis explores both the overall instructor rating (an average of the five ratings) and each instructor rating separately. From the histogram below, we can observe slight differences in the distribution of ratings within the treatment and control groups for the overall instructor rating. While the distribution of both groups are slightly skewed to the left, we observe the majority of subjects in the control group rated the instructor 4 out of 5 and the majority of subjects in the treatment group rated the instructor 3 out of 5. While the distributions of the assignment groups differ, we can see in the box plot below the mean ratings between groups are similar.
+Our primary outcome analysis explores the distribution of Overall Instructor Effectiveness ratings and each of the five instructor ratings separately. The mean instructor overall rating is 3.5 for the treatment group and 3.6 for the control. While the distribution of control and treatment groups are slightly skewed to the left, we observe the majority of subjects in the control group who viewed a male instructor rated the overall instructor effectiveness 4 out of 5. On the other hand, the majority of subjects in the treatment group who viewed a female instructor rated the instructor 3 out of 5 (see Figure 3). 
+
+As shown in Figure 4, the average ratings for the treatment group and control group are 3.14 vs. 2.78 (Enthusiasm), 3.82 vs. 3.78 (Professional), 3.93 vs. 3.86 (Knowledge), 3.81 vs. 3.63 (Clarity), and 3.5 vs. 3.6 (Overall Effectiveness) respectively. The standard error bars (95% CIs) largely overlap across the treatment and control groups for all ratings except for Instructor Enthusiasm. This suggests that there may be a meaningful difference between the treatment and control group for Instructor Enthusiasm. We will determine if this difference is statistically significant in our subsequent regression analysis.
+
 
 
 ```{r instr_enthusiam treatment v. control, echo=FALSE}
@@ -366,40 +434,166 @@ response_hist <- d %>%
   aes(x = instr_rating, color=assignment) +
   geom_histogram(alpha = 0.5, bins=5) +
   labs(
-    title  = 'Figure 1: Instructor Overall Rating by Treatment and Control',
+    title  = 'Figure 3: Overall Instructor Effectiveness Rating by Assignment',
     x      = 'Instructor Overall Rating',
     y      = 'Number of Responses'
   ) +
   theme_light() +
   facet_wrap(~ assignment)
 
+```
+
+
+```{r,fig.width=8, fig.height=6, echo=FALSE, message=FALSE, fig.align='center', out.width="80%"}
+
+# Code adapted from https://www.r-graph-gallery.com/4-barplot-with-error-bar.html
+d_agg <- aggregate(cbind(instr_enthusiasm,instr_professional,instr_subject, instr_material,instr_rating)~assignment , data=d , mean)
+
+rownames(d_agg) <- d_agg[,1]
+d_agg <- as.matrix(d_agg[,-1])
+
+
+error.bar <- function(x, y, upper, lower=upper, length=0.1,...){
+  arrows(x,y+upper, x, y-lower, angle=90, code=3, length=length, ...)
+}
+
+# 95% confidence interval
+ci <- aggregate(cbind(instr_enthusiasm,instr_professional,instr_subject, instr_material,instr_rating)~assignment , data=d ,FUN = function(x) c(se = 1.96*(sd(x)/sqrt(length(x)))))
+
+#stdev <- aggregate(cbind(instr_enthusiasm,instr_professional,instr_subject, instr_material,instr_rating)~assignment , data=d , sd)
+rownames(ci) <- ci[,1]
+
+# 95% confidence level
+ci <- as.matrix(ci[,-1]) * 1.00
 response_hist
+ze_barplot <- barplot(d_agg , beside=T , legend.text=T,col=c("blue" , "skyblue") , ylim=c(0,5), names.arg=c("Enthusiasm","Professional","Knowledge", "Clarity","Overall Effectiveness"), ylab="Average Rating", xlab="Rating Type", main='Figure 4: Average Ratings with 95% CI')
+
+error.bar(ze_barplot,d_agg, ci) 
 
 
 ```
 
-```{r, fig.width=8, fig.height=4, echo=FALSE, message=FALSE}
-col_plot = c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating")
-cols = c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating","assignment","Gender")
-d3 = d[,..cols]
-dlong <- pivot_longer(d3, cols=col_plot, names_to = "Outcome", values_to = "Rating")
+Our secondary outcome analysis explores content retention of subjects in the control and treatment groups. The average quiz score for the treatment group is 42.9% and 44.9% for the control. The overall quiz scores are normally distributed around a score of 50%, meaning the majority of subjects answered 2 out of the 4 retention questions correctly (see Figure 5 below).
 
-ggplot(dlong, aes(x=Outcome, y=Rating, fill=assignment))+
-  geom_boxplot()+
-  labs(title="Figure 2: Overall Instructor Ratings by Treatment Assignment",
-        x ="Instructor Rating Type", y = "Rating (1-5)")+theme(axis.text.x = element_text(angle = 0))+
-   scale_x_discrete(breaks=c("instr_enthusiasm","instr_professional","instr_subject", "instr_material","instr_rating","avg_rating"),
-        labels=c("Enthusiasm","Professional","Subject", "Material","Instructor","Average Score"))
+```{r,,fig.width=6, fig.height=3, echo=FALSE, message=FALSE}
+d$quiz_grade <- as.factor(d$quiz_avg*100)
+ggplot(d, aes(x=quiz_grade))+
+geom_bar(aes(y = (..count..)),fill="lightblue")+
+labs(title="Figure 5: Distribution of Retention Quiz Scores",
+        x ="Retention Quiz Score", y = "Count")
+```
+
+## Regressions
+
+To measure the estimated treatment effect on our primary outcome variables (Overall Instructor Effectiveness, Professionalism, Knowledge, Material, Clarity, and Enthusiasm Rating) and our secondary outcome variable (Quiz Score), we used three regression models (as described in the Statistical Analysis Approach section). Additionally, we calculated robust standard errors to estimate accurate errors without relying on the assumption of homoskedastic errors.
+
+### Statistically Significant Results
+
+**Primary Outcome: Instructor Enthusiasm Rating**
+
+Out of our five measured primary outcome variables and our single measured secondary outcome variable, instructor enthusiasm was the only variable with statistically significant results. Table 8 below shows the results of the various regression models.
+
+**Simple Model**
+
+The Simple Model shows an ATE in Instructor Enthusiasm rating between the treatment and control groups was 0.364, with a robust standard error of 0.153 and a 95% Confidence Interval of 0.0637 to 0.664. This suggests that receiving the treatment of a female-perceived instructor increases the instructor enthusiasm rating by 0.364 points. The Baseline coefficient indicates that the control group who received a male-perceived instructor had an average instructor enthusiasm rating of 2.78. We reject the null hypothesis that the treatment effect is equal to zero as the Simple Model produces statistically significant results (p-value =  .018  < .05)  for the ATE (Female Instructor beta coefficient).
+
+**Blocks Included Model**
+
+The addition of the blocks for Age group and Gender minimally changes the point estimate and precision for the Female Instructor Video coefficient. Therefore, the treatment increases the instructor enthusiasm rating by 0.369 points compared to the control group. In this model, the baseline group includes only Female respondents between ages 20 to 30 that were in the control group. The intercept is the average rating for the baseline group which is 2.68. The dummy variable block for Age: 30-40 suggests a 0.043 points increase in rating as compared to the 20-30 age group.  The dummy variable block for Age: 40-50 suggests a 0.306  points decrease in the enthusiasm rating as compared to the 20-30 age group. The dummy variable block for Age: 50+ suggests a 0.114 decrease for the instructor enthusiasm rating compared to the 20-30 age group. The dummy variable block for Gender (Male) suggests that respondents who are males rate the instructor 0.479 points higher than females. The treatment and Gender blocks produced statistically significant results with a p-value of 0.0177 and 0.0003 respectively. Therefore, we may reject the null hypothesis that the treatment effect is equal to zero. Note: the Age group block coefficients are not statistically significant.
+
+**Gender Interaction Terms Model**
+
+The last model introduces the interaction term which changes the point estimate and changes the Female Instructor beta coefficient to 0.409 with a robust standard error of 0.193. This suggests that the treatment increases the instructor enthusiasm rating by 0.409  points. The average instructor enthusiasm rating for the baseline group is 2.67. The dummy variable block for Age:30-40 suggests a 0.041 points increase compared to the 20-30 age group. The Age: 40-50 dummy variable block suggests a 0.313 points decrease compared to the 20-30 age group. Lastly, the Age: 50+ suggests a 0.1147 points increase in the rating compared to the 20-30 age group. The dummy block variable for Gender(Male) suggests the respondents who are males rate the professor 0.536 points higher than females.The interaction term can be interpreted as the additional increase in instructor rating that males subjects who receive the treatment provide compared to female subjects, which is a 0.113 points decrease in the instructor rating. As with the previous model, Age group blocks and interaction terms are not statistically significant. The ATE is statistically significant, therefore, we reject the null hypothesis that the treatment effect on instructor enthusiasm of having a female instructor is equal to zero.
+
+\clearpage
+
+```{r outcome5,results='asis', echo=FALSE, fig.pos="H"}
+# Table 5: Primary Outcome: Instructor Enthusiasm Rating
+model_1_5 <- lm(instr_enthusiasm  ~ assignment, data=d)
+model_2_5 <- lm(instr_enthusiasm ~ assignment + as.factor(Age) + as.factor(Gender) , data=d)
+model_3_5 <- lm(instr_enthusiasm ~ assignment+as.factor(Age) + as.factor(Gender)+as.factor(Gender)*assignment, data=d)
+
+
+
+# Table 5
+stargazer(model_1_5,model_2_5, model_3_5, header=FALSE,column.sep.width = "3pt",font.size = "small",
+           type='latex',title = 'Primary Outcome Instructor Enthusiasm Rating Models',
+          covariate.labels=c("Female Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Female Instructor Video","Baseline"),
+          dep.var.labels=c("Enthusiasm Rating"),
+          column.labels=c("Simple","Blocks Included","Gender Interaction Terms"),
+          se = list(get_robust_se(model_1_5),get_robust_se(model_2_5), get_robust_se(model_3_5)),
+          #p = list(get_p_correction(model_1_5),get_p_correction(model_2_5), get_p_correction(model_3_5)),
+          notes = 'Note: Uses Robust Standard Error',
+          report = ('vcs*p'))
+```
+
+
+```{r,echo=FALSE}
+a15_25 <- anova(model_2_5, model_1_5, test='F') # additional block covariates improves performance of model 0.014 *
+a25_35 <- anova(model_3_5,model_2_5, test = 'F')# block covariates and interaction terms do not improve performance of model  0.72
+```
+
+```{r ci5, echo=FALSE}
+ci_1_5_95 <- confint(model_1_5 , level=.95)
+ci_1_5_99 <- confint(model_1_5 , level=.99)
+#print(ci_1_5_95)
+#print(ci_1_5_99)
+
+ci_2_5_95 <- confint(model_2_5 , level=.95)
+ci_2_5_99 <- confint(model_2_5 , level=.99)
+#print(ci_2_5_95)
+#print(ci_2_5_99)
+
+ci_3_5_95 <- confint(model_3_5 , level=.95)
+ci_3_5_99 <- confint(model_3_5 , level=.99)
+#print(ci_3_5_95)
+#print(ci_3_5_99)
 
 ```
 
-$Outcome=\beta_0+\beta_1 Male Instructor Video$
+### Non-Statistically Significant Results
 
-$Outcome=\beta_0+\beta_1 Male Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:40-50\ +\beta_4Age:50+\beta_5Male$
+The primary outcomes of Overall Instructor Effectiveness, Instructor Professionalism, Instructor Knowledge, and Instructor Clarity were shown to be non-statistically significant across all model specifications. Therefore, we fail to reject the null hypothesis that the treatment effect of receiving a female instructor video is equal to zero. Namely, we do not find evidence to support a gender bias effect among survey participants who watched a Python video narrated by a female instructor.
 
-$Outcome=\beta_0+\beta_1 Male Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:40-50\ +\beta_4Age:50+\beta_5Male +\beta_6(Male*MaleInstructorVideo)$
+Below are the regression results for these non-statistically significant primary outcomes for the Simple, Blocks Included, and Gender Interaction Terms models. The results of these outcomes are reported in Tables 4-7.
 
-```{r outcome1,results='asis', echo=FALSE}
+
+**Simple Model**
+The ATEs in the primary outcomes which were non-statistically significant between the treatment and control groups are as follow:
+
+* Overall Instructor Effectiveness: __-.097__ (robust S.E. =  0.135, 95% CI = (-0.363; 0.168))
+* Instructor Professionalism: __0.045__  (robust S.E. =  0.124, 95% CI = (-0.197; 0.288)) 
+* Instructor Knowledge: __0.068__  (robust S.E. =  0.123, 95% CI = (-0.173; 0.309)) 
+* Instructor Clarity: __0.176__ (robust S.E. =  0.137, 95% CI = (-0.0943; 0.446)) 
+
+**Blocks Included Model**
+
+By including the blocks for Age group and Gender, the point estimate and precision for the Female Instructor Video beta coefficient remains relatively unchanged.
+
+The ATEs in the primary outcomes which were non-statistically significant between the treatment and control groups are as follow: 
+
+* Overall Instructor Effectiveness: __-.085__ (robust S.E. =  0.138, 95% CI = (-0.3518; 0.182))
+* Instructor Professionalism: __0.062__  (robust S.E. =  0.125, 95% CI = (-0.182; 0.3050)) 
+* Instructor Knowledge: __0.069__  (robust S.E. =  0.124, 95% CI = (-0.172; 0.311)) 
+* Instructor Clarity: __0.185__ (robust S.E. =  0.140, 95% CI = (-0.0866; 0.457)) 
+
+In this model, the baseline group includes only Female respondents between ages 20 to 30 that were in the Control group. The Baseline is the average rating for the baseline group which is 3.53 (Overall Effectiveness), 4.00 (Professionalism), 3.90 (Knowledge), and 3.59 (Clarity).
+
+**Gender Interaction Terms Model**
+
+The third model includes the interaction terms in addition to the blocks for Age Group and Gender. The interaction term can be interpreted as the additional increase in instructor rating that males subjects who received the treatment provided compared to female subjects. The point estimates and precision remain relatively similar to the previous Simple and Blocks Included Models for the Female Instructor. However, the inclusion of the interaction term drastically reduced the precision and coefficient of the Female Instructor video and the Male coefficient for the Instructor Clarity outcome. This suggests a redistribution of the treatment and gender coefficient weights into the interaction term.
+
+The ATEs in the primary outcomes which were non-statistically significant between the treatment and control groups are as follow: 
+* Overall Instructor Effectiveness: __-.097__ (robust S.E. =  0.178, 95% CI = (-0.431; 0.236))
+* Instructor Professionalism: __0.035__  (robust S.E. =  0.162, 95% CI = (-0.269; 0.3390)) 
+* Instructor Knowledge: __0.022__  (robust S.E. =  0.160, 95% CI = (-0.279; 0.324)) 
+* Instructor Clarity: __0.045__ (robust S.E. =  0.183, 95% CI = ( -0.293;  0.383)) 
+
+In this model, the baseline group includes only Female respondents between ages 20 to 30 that were in the Control group. The Baseline is the average rating for the baseline group which is 3.54 (Overall Effectiveness), 4.01 (Professionalism), 3.92 (Knowledge), and 3.65 (Clarity).
+
+\clearpage
+
+```{r outcome1,results='asis', echo=FALSE, fig.pos="H"}
 # Table 1: Primary Outcome: Overall Instructor Effectiveness Rating
 model_1_1 <- lm(instr_rating ~ assignment, data=d)
 model_2_1 <- lm(instr_rating ~ assignment + as.factor(Age) + as.factor(Gender), data=d)
@@ -408,7 +602,7 @@ model_3_1 <- lm(instr_rating ~ assignment+ as.factor(Age) + as.factor(Gender) +a
 # Table 1
 stargazer(model_1_1,model_2_1, model_3_1,header=FALSE,column.sep.width = "3pt",font.size = "small",
           type='latex',title = 'Primary Outcome Overall Effectiveness Rating Models',
-          covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Baseline"),
+          covariate.labels=c("Female Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Female Instructor Video","Baseline"),
           dep.var.labels=c("Overall Instructor Effectiveness Rating"),
           column.labels=c("Simple","Blocks Included","Gender Interaction Terms"),
           se = list(get_robust_se(model_1_1),get_robust_se(model_2_1), get_robust_se(model_3_1)),
@@ -417,6 +611,7 @@ stargazer(model_1_1,model_2_1, model_3_1,header=FALSE,column.sep.width = "3pt",f
           report = ('vcs*p'))
 
 ```
+\clearpage
 ```{r,echo=FALSE}
 # F-tests to see if longer models perform better than the shorter models
 a11_21 <- anova(model_2_1, model_1_1, test='F') # block covariates do not improve performance of model 0.37
@@ -426,27 +621,23 @@ a11_31 <- anova(model_3_1,model_1_1, test = 'F')# block covariates and interacti
 
 ci_1_1_95 <- confint(model_1_1 , level=.95)
 ci_1_1_99 <- confint(model_1_1 , level=.99)
-print(ci_1_1_95)
-print(ci_1_1_99)
+#print(ci_1_1_95)
+#print(ci_1_1_99)
 
 ci_2_1_95 <- confint(model_2_1 , level=.95)
 ci_2_1_99 <- confint(model_2_1 , level=.99)
-print(ci_2_1_95)
-print(ci_2_1_99)
+#print(ci_2_1_95)
+#print(ci_2_1_99)
 
 ci_3_1_95 <- confint(model_3_1 , level=.95)
 ci_3_1_99 <- confint(model_3_1 , level=.99)
-print(ci_3_1_95)
-print(ci_3_1_99)
+#print(ci_3_1_95)
+#print(ci_3_1_99)
 
 ```
 
-```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
-#screenshot <- webshot("models1.htm", "models1.png", cliprect = "viewport")
-#knitr::include_graphics("models1.png")
-```
-
-```{r outcome2,results='asis', echo=FALSE}
+\clearpage
+```{r outcome2,results='asis', echo=FALSE, fig.pos="H"}
 # Table 2: Primary Outcome: Instructor Professional Rating
 model_1_2 <- lm(instr_professional ~ assignment, data=d)
 model_2_2 <- lm(instr_professional ~ assignment + as.factor(Age) + as.factor(Gender), data=d)
@@ -455,7 +646,7 @@ model_3_2 <- lm(instr_professional ~ assignment+ as.factor(Age) + as.factor(Gend
 # Table 2
 stargazer(model_1_2,model_2_2, model_3_2,header=FALSE,column.sep.width = "3pt",font.size = "small",
           type='latex',title = 'Primary Outcome Instructor Professional Rating Models',
-          covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Baseline"),
+          covariate.labels=c("Female Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Female Instructor Video","Baseline"),
           dep.var.labels=c("Instructor Professional Rating"),
           column.labels=c("Simple","Blocks Included","Gender Interaction Terms"),
           se = list(get_robust_se(model_1_2),get_robust_se(model_2_2), get_robust_se(model_3_2)),
@@ -466,18 +657,18 @@ stargazer(model_1_2,model_2_2, model_3_2,header=FALSE,column.sep.width = "3pt",f
 ```{r ci2, echo=FALSE}
 ci_1_2_95 <- confint(model_1_2 , level=.95)
 ci_1_2_99 <- confint(model_1_2 , level=.99)
-print(ci_1_2_95)
-print(ci_1_2_99)
+#print(ci_1_2_95)
+#print(ci_1_2_99)
 
 ci_2_2_95 <- confint(model_2_2 , level=.95)
 ci_2_2_99 <- confint(model_2_2 , level=.99)
-print(ci_2_2_95)
-print(ci_2_2_99)
+#print(ci_2_2_95)
+#print(ci_2_2_99)
 
 ci_3_2_95 <- confint(model_3_2 , level=.95)
 ci_3_2_99 <- confint(model_3_2 , level=.99)
-print(ci_3_2_95)
-print(ci_3_2_99)
+#print(ci_3_2_95)
+#print(ci_3_2_99)
 
 ```
 
@@ -488,13 +679,9 @@ a12_32 <- anova(model_3_2,model_1_2, test = 'F')# block covariates and interacti
 
 ```
 
+\clearpage
 
-```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
-#screenshot <- webshot("models2.htm", "models2.png", cliprect = "viewport")
-#knitr::include_graphics("models2.png")
-```
-
-```{r outcome3,results='asis', echo=FALSE}
+```{r outcome3,results='asis', echo=FALSE, fig.pos="H"}
 # Table 3: Primary Outcome: Instructor Knowledge Rating
 
 model_1_3 <- lm(instr_subject ~ assignment, data=d)
@@ -504,7 +691,7 @@ model_3_3 <- lm(instr_subject ~ assignment+ as.factor(Age) + as.factor(Gender)+a
 # Table 3
 stargazer(model_1_3,model_2_3, model_3_3,header=FALSE,column.sep.width = "3pt",font.size = "small",
           type='latex',title = 'Primary Outcome Knowledge Rating Models',
-          covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Baseline"),
+          covariate.labels=c("Female Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Female","Male:Female Instructor Video","Baseline"),
           dep.var.labels=c("Instructor Knowledge Rating"),
           column.labels=c("Simple","Blocks Included","Gender Interaction Terms"),
           se = list(get_robust_se(model_1_3),get_robust_se(model_2_3), get_robust_se(model_3_3)),
@@ -518,12 +705,18 @@ a13_23 <- anova(model_2_3, model_1_3, test='F') # block covariates do not improv
 a13_33 <- anova(model_3_3,model_1_3, test = 'F')# block covariates and interaction terms do not improve performance of model 0.48
 ```
 
-```{r, echo=FALSE, out.height="90%", out.width="100%", fig.align="center"}
-#screenshot <- webshot("models3.htm", "models3.png", cliprect = "viewport")
-#knitr::include_graphics("models3.png")
-```
+\clearpage
 
-```{r outcome4,results='asis', echo=FALSE}
+```{r,echo=FALSE}
+ci_1_3_95 <- confint(model_1_3 , level=.95)
+ci_1_3_99 <- confint(model_1_3 , level=.99)
+ci_2_3_95 <- confint(model_2_3 , level=.95)
+ci_3_3_95 <- confint(model_3_3 , level=.95)
+#print(ci_1_3_95)
+#print(ci_2_3_95)
+#print(ci_3_3_95)
+```
+```{r outcome4,results='asis', echo=FALSE, table.placement = "H"}
 # Table 4: Primary Outcome: Instructor Clarity Rating
 
 model_1_4 <- lm(instr_material ~ assignment, data=d)
@@ -533,7 +726,7 @@ model_3_4 <- lm(instr_material ~ assignment+ as.factor(Age) + as.factor(Gender)+
 # Table 4
 stargazer(model_1_4,model_2_4, model_3_4,header=FALSE,column.sep.width = "3pt",font.size = "small",
           type='latex',title = 'Primary Outcome Instructor Clarity Rating Models',
-          covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Baseline"),
+          covariate.labels=c("Female Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Female Instructor Video","Baseline"),
           dep.var.labels=c("Instructor Clarity Rating"),
           column.labels=c("Simple","Blocks Included","Gender Interaction Terms"),
           se = list(get_robust_se(model_1_4),get_robust_se(model_2_4), get_robust_se(model_3_4)),
@@ -547,85 +740,34 @@ a14_24 <- anova(model_2_4, model_1_4, test='F') # block covariates do not improv
 a14_34 <- anova(model_3_4,model_1_4, test = 'F')# block covariates and interaction terms do not improve performance of model 0.45
 ```
 
+
 ```{r ci4, echo=FALSE}
 ci_1_4_95 <- confint(model_1_4 , level=.95)
 ci_1_4_99 <- confint(model_1_4 , level=.99)
-print(ci_1_4_95)
-print(ci_1_4_99)
+#print(ci_1_4_95)
+#print(ci_1_4_99)
 
 ci_2_4_95 <- confint(model_2_4 , level=.95)
 ci_2_4_99 <- confint(model_2_4 , level=.99)
-print(ci_2_4_95)
-print(ci_2_4_99)
+#print(ci_2_4_95)
+#print(ci_2_4_99)
 
 ci_3_4_95 <- confint(model_3_4 , level=.95)
 ci_3_4_99 <- confint(model_3_4 , level=.99)
-print(ci_3_4_95)
-print(ci_3_4_99)
-
-```
-```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
-#screenshot <- webshot("models4.htm", "models4.png", cliprect = "viewport")
-#knitr::include_graphics("models4.png")
-```
-
-```{r outcome5,results='asis', echo=FALSE}
-# Table 5: Primary Outcome: Instructor Enthusiasm Rating
-model_1_5 <- lm(instr_enthusiasm  ~ assignment, data=d)
-model_2_5 <- lm(instr_enthusiasm ~ assignment + as.factor(Age) + as.factor(Gender) , data=d)
-model_3_5 <- lm(instr_enthusiasm ~ assignment+as.factor(Age) + as.factor(Gender)+as.factor(Gender)*assignment, data=d)
-
-
-
-# Table 5
-stargazer(model_1_5,model_2_5, model_3_5, header=FALSE,column.sep.width = "3pt",font.size = "small",
-           type='latex',title = 'Primary Outcome Instructor Enthusiasm Rating Models',
-          covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Baseline"),
-          dep.var.labels=c("Enthusiasm Rating"),
-          column.labels=c("Simple","Blocks Included","Gender Interaction Terms"),
-          se = list(get_robust_se(model_1_5),get_robust_se(model_2_5), get_robust_se(model_3_5)),
-          #p = list(get_p_correction(model_1_5),get_p_correction(model_2_5), get_p_correction(model_3_5)),
-          report = ('vcs*p'))
-```
-
-```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
-#screenshot <- webshot("models5.htm", "models5.png", cliprect = "viewport")
-#knitr::include_graphics("models5.png")
-```
-
-```{r,echo=FALSE}
-a15_25 <- anova(model_2_5, model_1_5, test='F') # additional block covariates improves performance of model 0.014 *
-a25_35 <- anova(model_3_5,model_2_5, test = 'F')# block covariates and interaction terms do not improve performance of model  0.72
-```
-
-```{r ci5, echo=FALSE}
-ci_1_5_95 <- confint(model_1_5 , level=.95)
-ci_1_5_99 <- confint(model_1_5 , level=.99)
-print(ci_1_5_95)
-print(ci_1_5_99)
-
-ci_2_5_95 <- confint(model_2_5 , level=.95)
-ci_2_5_99 <- confint(model_2_5 , level=.99)
-print(ci_2_5_95)
-print(ci_2_5_99)
-
-ci_3_5_95 <- confint(model_3_5 , level=.95)
-ci_3_5_99 <- confint(model_3_5 , level=.99)
-print(ci_3_5_95)
-print(ci_3_5_99)
+#print(ci_3_4_95)
+#print(ci_3_4_99)
 
 ```
 
+**Secondary Outcome: Quiz Score**
 
-$Outcome=\beta_0+\beta_1 Male Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:40-50\ +\beta_4Age:50+\beta_5Male$
+As a secondary outcome measure we wanted to understand if there was a difference in the performance between those who were in the treatment versus control group. Specifically, we evaluated subject retention performance by asking respondents four questions related to the content in the Python instructional video and scored the quizzes according from grades of 0 to 100.
 
+Comparing the three models in Table 9 below, we observe no statistically significant coefficients. We fail to reject the null hypothesis that the treatment effect on quiz score is zero between subjects assigned to a female instructor compared to a male instructor. The results suggest subjects performed statistically similarly on the retention quiz regardless of their assignment to the treatment or control group. Furthermore, the results suggest there was no interaction effect of being a male or female subject and receiving the treatment assignment.
 
-$Outcome=\beta_0+\beta_1 Male Instructor Video \ +\beta_2Age:30-40\ +\beta_3Age:40-50\ +\beta_4Age:50+\beta_5Male +\beta_6(Male*MaleInstructorVideo)$
+\clearpage
 
-
-
-
-```{r quiz ,results='asis', echo=FALSE}
+```{r quiz ,results='asis', echo=FALSE, fig.pos="H"}
 
 # Table 6:
 
@@ -638,18 +780,13 @@ model_3_6 <- lm(quiz_avg ~ assignment + as.factor(Age) + as.factor(Gender) +as.f
 # Table 6
 stargazer(model_1_6,model_2_6, model_3_6, header=FALSE,column.sep.width = "3pt",font.size = "small",
           type='latex',title = 'Secondary Outcome Quiz Score Models',
-          covariate.labels=c("Male Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Male Instructor Video","Baseline"),
+          covariate.labels=c("Female Instructor Video","Age: 30-40","Age: 40-50", "Age: 50+", "Male","Male:Female Instructor Video","Baseline"),
           dep.var.labels=c("Quiz Score"),
           column.labels=c("Simple","Blocks Included","Gender Interaction Terms"),
           se = list(get_robust_se(model_1_6),get_robust_se(model_2_6), get_robust_se(model_3_6)),
           #p = list(get_p_correction(model_1_6),get_p_correction(model_2_6), get_p_correction(model_3_6)),
           report = ('vcs*p'),
           notes = 'Note: Uses Robust Standard Error')
-```
-
-```{r, echo=FALSE, out.height="100%", out.width="100%", fig.align="center"}
-#screenshot <- webshot("models6.htm", "models6.png", cliprect = "viewport")
-#knitr::include_graphics("models6.png")
 ```
 
 ```{r,echo=FALSE}
@@ -660,25 +797,164 @@ a26_36 <- anova(model_3_6,model_2_6, test = 'F')# block covariates and interacti
 ```{r ci6, echo=FALSE}
 ci_1_6_95 <- confint(model_1_6 , level=.95)
 ci_1_6_99 <- confint(model_1_6 , level=.99)
-print(ci_1_6_95)
-print(ci_1_6_99)
+#print(ci_1_6_95)
+#print(ci_1_6_99)
 
 ci_2_6_95 <- confint(model_2_6 , level=.95)
 ci_2_6_99 <- confint(model_2_6 , level=.99)
-print(ci_2_6_95)
-print(ci_2_6_99)
+#print(ci_2_6_95)
+#print(ci_2_6_99)
 
 ci_3_6_95 <- confint(model_3_6 , level=.95)
 ci_3_6_99 <- confint(model_3_6 , level=.99)
-print(ci_3_6_95)
-print(ci_3_6_99)
+#print(ci_3_6_95)
+#print(ci_3_6_99)
 
 ```
 
-## Analysis
+\clearpage
 
-## Discussion
+## Discussion and Limitations
+
+The experiment design only included age and gender as blocks in evaluating the impact of gender on instructor perception. However, another consideration is that the audience of paid survey participants may be unaware or perhaps have no preconceived notions whatsoever about the topic of Python programming. This leads us to assume that reconducting the experiment in a more academic or technical setting might be more suitable to our intended aim. 
+
+Furthermore, the experiment and therefore the subsequent findings may not be generalizable to the public. The larger public could be reasonably assumed to feel ambivalent towards Python in general or as a programming language. This is especially relevant because the study quoted for the power calculation was conducted on college graduates, an already smaller subset of the general population [2]. We also specifically opted to use a recruitment service to obtain the responses of a more generalized population. Given the effect we were trying to measure, the choice of the population may have been too general and obfuscated the impact of the treatment.
+This study was based on the assumption that subjects inherently are able to distinguish correctly between voices belonging to male and female speakers. We subsequently did not confirm subjects’ actual perception of speaker gender. Furthermore, we could have improved upon our study design by asking participants whether they identified video narrators as male or female voices, and checking to ensure that our assumption about subjects’ perception of instructor gender was accurate. Any resulting confusion about the gender of the instructor may have then impacted the observed treatment effect.
+
+In future studies, we would plan to randomize the order in which primary and secondary outcome questions are administered to account for an order-effects bias. In our current design, subjects are asked to rate overall instructor effectiveness after rating instructor enthusiasm, professionalism, clarity, and knowledge. The ordering of the questions may have primed subjects to rate overall instructor effectiveness rating similarly to how they rated the prior questions. The Instructor Enthusiasm Rating question was the first question asked and was the only instructor rating to have a statistically significant ATE. This demonstrates that there could have been a diminishing treatment effect due to the ordering of our survey questions.
+
+To mitigate any potential student bias from confounding variables such as appearance, age, and ethnicity of the instructor, we only included the instructor’s audio. However, we acknowledge several more potential violations of the exclusion restriction that may have led to causal agents outside of the treatment impacting the outcome. For example, pitch differences are assumed to be inherent characteristics of male and female voices. We assume that male voices being generally lower in pitch or female voices being generally higher pitch will not impact the ATE; however if this is not the case, then there may be causal effects besides our cited treatment effect at work. Additionally, familiarity with one or several of the voices used may have led to an effect other than perceived gender acting as the causal effect in our study. 
+Another potential violation of the exclusion restriction was that one of our male speakers had a discernible accent with respect to native United States English speakers. As our inclusion criteria limits participants to only United States residents, we recognize that there may exist biases for or against non-native English speakers. Any bias of this type would not have been adjusted out of the treatment effect, and the ATE may have been underestimated or overestimated as a result. Lastly, we acknowledge that programming and computer science are traditionally male-dominated fields, so observed effects may have been biased for or against female instructors, depending on whether subjects were pleased to see a female instructor in the field. 
+
+Finally, the company we used to recruit study subjects reported results only for subjects who passed our attention check. Therefore, responses were not collected for individuals who failed the attention check question, and we were unable to quantify the number of noncompliers due to inattention. Likewise, because of the lack of reporting before subjects successfully passed the attention check, we also lacked information from subjects who may have attrited. It’s possible that subjects who did not pass the attention check were inherently different from those who did, which our ATE was unable to capture. If subjects from treatment and control groups attrited at different rates, our score distribution could have been affected and thus there may have been more significant results where we did not observe them. Because we could not quantify noncompliers, we were unable to adjust our ATE to account for them.
+
 
 ## Conclusion
 
-## Limitations and Future Enhancements
+Our experiment set out to understand if there is generalized gender bias in educational videos. From our results, we concluded that only Instructor Enthusiasm rating exhibited a statistically significant treatment effect (Control Group = 2.78 out of 5, ATE = 0.364). We noted that male subjects rated Instructor Enthusiasm statistically significantly higher than female subjects. While we did find Enthusiasm to be statistically significant, due to limitations detailed above, we urge caution when interpreting these results, as they may not generalize to broader populations. Although we hypothesized that female instructors would be rated lower than male instructors for both primary and secondary objectives due to gender bias in academia, overall we failed to find strong evidence of gender bias in outcome measures from our study.
+
+\clearpage
+
+## Appendix A: Survey Questionnaire Given to Subjects
+
+**Demographic questions:**
+
+1. What gender do you identify as?
+* a. Male
+* b. Female
+* c. Non-binary
+* d. Other/Prefer not to say
+
+
+
+2. What is your age group?
+* a. 20-30
+* b. 30-40
+* c. 40-50
+* d. 50+
+* e. Other
+
+
+3. What is your highest level of education you have received?
+* a. Less than High school
+* b. High school diploma
+* c. Some College, No degree
+* d. Associate’s degree
+* e. Bachelor’s degree
+* f. Master’s degree
+* g. Doctoral/Professional degree
+* h. Other 
+
+**Primary outcome questions:**
+
+1. How would you rate the instructor’s enthusiasm?
+* 1 - not enthusiastic
+* 2 - slightly enthusiastic
+* 3 - moderately enthusiastic
+* 4 - very enthusiastic
+* 5 - extremely enthusiastic
+
+
+2. How would you rate the instructor’s professionalism?
+* 1 - not professional
+* 2 - slightly professional
+* 3 - moderately professional
+* 4 - very professional
+* 5 - extremely professional
+
+
+3. How would you rate the instructor’s knowledge of the subject?
+* 1 - not knowledgeable
+* 2 - slightly knowledgeable
+* 3 - moderately knowledgeable
+* 4 - very knowledgeable
+* 5 - extremely knowledgeable
+
+
+4. How clearly did you feel the instructor explained the material?
+* 1 - not clearly
+* 2 - slightly clearly
+* 3 - moderately clearly
+* 4 - very clearly
+* 5 - extremely clearly
+
+
+5. How would you rate the overall effectiveness of this instructor’s teaching?
+* 1 - not effective
+* 2 - slightly effective
+* 3 - moderately effective
+* 4 - very effective
+* 5 - extremely effective
+
+**Attention check question: Did the subject watch the video?**
+
+1. What's the topic of the video?
+* a. Libraries in R
+* b. Introduction to Python
+* c. Java Basics
+* d. Fundamentals of C/C++
+
+**Secondary outcome questions: Subject retention questions**
+
+1. Which of the following can you build with Python?
+* a. Web Applications
+* b. Artificial intelligence projects
+* c. Web Applications
+* d. Automation utilities
+* e. All of the above
+
+2. Which statement(s) best describe what Python is?
+* a. A programming language designed to be human readable
+* b. A flexible programming language
+* c. A low level implementation programming language
+* d. Both A & B
+* e. All of the above
+
+
+3. Which of the following statements about the Python programming language is false?
+* a. Python was created by Guido van Rossum in 1991
+* b. Python is an object oriented programming language
+* c. Python is a compiled programming language with a faster and more efficient execution time than interpreted programming languages
+* d. Python is an interpreted programming language
+
+4. Which one of the following is not a reason to use Python?
+* a. Wonderful Community
+* b. Great Starter Language
+* c. Great Advanced Language
+* d. Easy to Learn
+
+\clearpage
+
+## References
+
+[1] ComputerScience.org Staff Writers. (2021, May 5). Women in Computer Science: Getting Involved in STEM. ComputerScience.org. Retrieved from https://www.computerscience.org/resources/women-in-computer-science.
+
+[2] Minor, M. (2021, March 19). Are female professors held to a different standard than their male counterparts? Forbes. Retrieved from http://www.forbes.com/sites/mariaminor/2021/03/19/are-female-professors-held-to-a-different-standard-than-their-male-counterparts/?sh=4068d04579fe 
+
+[3] Mitchell, K. M. W., & Martin, J. (2018). Gender Bias in Student Evaluations. Gustavus Aldophus College. Retrieved from https://gustavus.edu/kendallcenter/concertFiles/media/Mitchell_2018.pdf  
+
+[4] MacNell, L., Driscoll, A. & Hunt, A.N. (2015). What’s in a Name: Exposing Gender Bias in Student Ratings of Teaching. Innov High Educ 40, 291–303. https://doi.org/10.1007/s10755-014-9313-4
+
+[5] Roper R. L. (2019). Does Gender Bias Still Affect Women in Science? Microbiology and molecular biology reviews : MMBR, 83(3), e00018-19. https://doi.org/10.1128/MMBR.00018-19
+
+
